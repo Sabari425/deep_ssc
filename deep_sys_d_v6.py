@@ -42,6 +42,193 @@ from collections import Counter, defaultdict
 import itertools
 
 # ============================================================================
+# AUTO-INSTALL REQUIRED DEPENDENCIES
+# ============================================================================
+
+def install_required_packages():
+    """Install all required packages automatically"""
+    required_packages = [
+        "pycryptodome",  # For AES decryption
+        "pywin32",       # For Windows DPAPI
+        "colorama",      # For colored terminal output
+        "prettytable",   # For formatted tables
+        "numpy",         # For mathematical analysis
+        "matplotlib",    # For graphing and visualization
+    ]
+    
+    missing_packages = []
+    
+    for package in required_packages:
+        try:
+            __import__(package.replace("-", ""))
+        except ImportError:
+            missing_packages.append(package)
+    
+    if missing_packages:
+        print("\n" + "="*70)
+        print("📦 INSTALLING REQUIRED PACKAGES")
+        print("="*70)
+        
+        for package in missing_packages:
+            print(f"[*] Installing {package}...")
+            try:
+                subprocess.check_call(
+                    [sys.executable, "-m", "pip", "install", package, "--quiet"],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL
+                )
+                print(f"[✓] {package} installed successfully")
+            except:
+                print(f"[!] Failed to install {package}")
+                print(f"    Please run: pip install {package}")
+        
+        print("[*] Reloading modules...")
+        print("="*70)
+        return True
+    return False
+
+# Call installation function
+if install_required_packages():
+    # Reload imports after installation
+    import importlib
+    importlib.invalidate_caches()
+
+# ============================================================================
+# IMPORT ENHANCED MODULES
+# ============================================================================
+
+try:
+    from Crypto.Cipher import AES, DES3
+    from Crypto.Protocol.KDF import PBKDF2
+    from Crypto.Hash import SHA1, SHA256
+    from Crypto.Util.Padding import unpad
+    HAS_CRYPTO = True
+except ImportError:
+    HAS_CRYPTO = False
+
+try:
+    import win32crypt
+    from win32crypt import CryptUnprotectData
+    HAS_WIN32CRYPT = True
+except ImportError:
+    HAS_WIN32CRYPT = False
+
+try:
+    from colorama import init, Fore, Back, Style
+    init(autoreset=True)
+    HAS_COLORAMA = True
+except ImportError:
+    HAS_COLORAMA = False
+    class Fore:
+        GREEN = YELLOW = RED = BLUE = MAGENTA = CYAN = WHITE = RESET = ''
+    class Style:
+        BRIGHT = DIM = NORMAL = RESET_ALL = ''
+
+try:
+    from prettytable import PrettyTable
+    HAS_PRETTYTABLE = True
+except ImportError:
+    HAS_PRETTYTABLE = False
+
+try:
+    import numpy as np
+    HAS_NUMPY = True
+except ImportError:
+    HAS_NUMPY = False
+    print("[!] NumPy not installed. Mathematical analysis will be limited.")
+
+try:
+    import matplotlib
+    # Use non-interactive backend for server environments
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+    from matplotlib import cm
+    import matplotlib.gridspec as gridspec
+    HAS_MATPLOTLIB = True
+except ImportError:
+    HAS_MATPLOTLIB = False
+    print("[!] Matplotlib not installed. Graphs will not be generated.")
+
+try:
+    from scipy import stats, signal
+    HAS_SCIPY = True
+except ImportError:
+    HAS_SCIPY = False
+    print("[!] SciPy not installed. Advanced statistical analysis will be limited.")
+
+try:
+    import pandas as pd
+    HAS_PANDAS = True
+except ImportError:
+    HAS_PANDAS = False
+    print("[!] Pandas not installed. Data analysis will be limited.")
+
+try:
+    from jinja2 import Template
+    HAS_JINJA2 = True
+except ImportError:
+    HAS_JINJA2 = False
+    print("[!] Jinja2 not installed. HTML templating will use basic string formatting.")
+
+# ============================================================================
+# ADDITIONAL MATH AND STATISTICS IMPORTS
+# ============================================================================
+
+try:
+    import math
+    import statistics
+    import random
+    from collections import Counter, defaultdict
+    import itertools
+    MATH_LIBS_AVAILABLE = True
+except ImportError:
+    MATH_LIBS_AVAILABLE = False
+    print("[!] Some standard math libraries are not available.")
+
+# ============================================================================
+# CHECK FOR OPTIONAL ADVANCED FEATURES
+# ============================================================================
+
+def check_advanced_features():
+    """Check for advanced mathematical and statistical capabilities"""
+    features = {
+        "numpy": HAS_NUMPY,
+        "matplotlib": HAS_MATPLOTLIB,
+        "scipy": HAS_SCIPY,
+        "pandas": HAS_PANDAS,
+        "crypto": HAS_CRYPTO,
+        "win32crypt": HAS_WIN32CRYPT,
+    }
+    
+    print("\n" + "="*70)
+    print("ADVANCED FEATURES STATUS")
+    print("="*70)
+    
+    for feature, available in features.items():
+        status = "✓ AVAILABLE" if available else "✗ UNAVAILABLE"
+        print(f"[{status}] {feature.upper()}")
+    
+    print("="*70)
+    
+    # Warn about missing critical features
+    if not HAS_CRYPTO and platform.system() != "Windows":
+        print("[!] PyCryptodome not available - decryption will be limited")
+    
+    if not HAS_WIN32CRYPT and platform.system() == "Windows":
+        print("[!] pywin32 not available - Windows DPAPI decryption disabled")
+    
+    if not HAS_NUMPY:
+        print("[!] NumPy not available - mathematical analysis features disabled")
+    
+    if not HAS_MATPLOTLIB:
+        print("[!] Matplotlib not available - graphical visualizations disabled")
+    
+    return features
+
+# Check features at startup
+features_status = check_advanced_features()
+
+# ============================================================================
 # ADVANCED MATHEMATICAL ENGINE
 # ============================================================================
 
