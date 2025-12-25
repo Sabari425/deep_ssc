@@ -10,6 +10,8 @@ Mathematical Methods: Laplace transforms, Probability distributions,
                       Entropy analysis, Markov models, Fourier analysis
 ================================================================================
 """
+install_required_packages()
+check_advanced_features()
 
 import os
 import sys
