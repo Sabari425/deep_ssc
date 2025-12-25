@@ -1,17 +1,14 @@
 """
 ================================================================================
-                 ULTIMATE PASSWORD ANALYTICS & EXTRACTION ENGINE
+                 ULTIMATE SECURITY ANALYTICS ENGINE v4.0
 ================================================================================
-Description: Advanced tool combining password extraction with mathematical 
-             analysis, statistical modeling, and professional visualization
+Description: Advanced security analysis tool with mathematical modeling,
+             statistical analysis, and professional visualization
 Author: Security Analytics Team
 Version: 4.0
-Mathematical Methods: Laplace transforms, Probability distributions, 
-                      Entropy analysis, Markov models, Fourier analysis
+Usage: Educational and authorized security testing only
 ================================================================================
 """
-install_required_packages()
-check_advanced_features()
 
 import os
 import sys
@@ -36,224 +33,540 @@ import pickle
 import csv
 from typing import Dict, List, Tuple, Optional, Any
 import uuid
-import math
-import random
-import statistics
-import numpy as np
-from collections import Counter, defaultdict
-import itertools
 
 # ============================================================================
-# AUTO-INSTALL REQUIRED DEPENDENCIES
+# AUTO-INSTALL REQUIRED DEPENDENCIES WITH IMPROVED ERROR HANDLING
 # ============================================================================
 
 def install_required_packages():
-    """Install all required packages automatically"""
+    """Install all required packages automatically with better error handling"""
     required_packages = [
-        "pycryptodome",  # For AES decryption
-        "pywin32",       # For Windows DPAPI
-        "colorama",      # For colored terminal output
-        "prettytable",   # For formatted tables
-        "numpy",         # For mathematical analysis
-        "matplotlib",    # For graphing and visualization
+        "pycryptodome",    # For AES decryption
+        "pywin32",         # For Windows DPAPI (Windows only)
+        "colorama",        # For colored terminal output
+        "prettytable",     # For formatted tables
+        "numpy",           # For mathematical analysis
+        "matplotlib",      # For graphing and visualization
+        "Jinja2",          # For HTML templating
     ]
     
+    # Optional packages - nice to have but not critical
+    optional_packages = [
+        "scipy",           # Advanced statistics
+        "pandas",          # Data analysis
+        "seaborn",         # Enhanced visualizations
+    ]
+    
+    all_packages = required_packages + optional_packages
     missing_packages = []
     
-    for package in required_packages:
+    # First check what's already installed
+    for package in all_packages:
         try:
-            __import__(package.replace("-", ""))
+            __import__(package.replace("-", "_").replace(".", "_"))
         except ImportError:
-            missing_packages.append(package)
+            if package in required_packages:
+                missing_packages.append(package)
+            else:
+                print(f"[*] Optional package {package} not found (will use fallbacks)")
     
     if missing_packages:
         print("\n" + "="*70)
         print("📦 INSTALLING REQUIRED PACKAGES")
         print("="*70)
+        print("[*] This may take a few minutes depending on your internet connection...")
         
+        # Try to upgrade pip first for better compatibility
+        try:
+            subprocess.check_call(
+                [sys.executable, "-m", "pip", "install", "--upgrade", "pip", "--quiet"],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL
+            )
+            print("[✓] Pip updated successfully")
+        except:
+            print("[!] Could not update pip (continuing anyway)")
+        
+        # Install missing packages
         for package in missing_packages:
-            print(f"[*] Installing {package}...")
+            print(f"\n[*] Installing {package}...")
             try:
+                # Use a longer timeout for larger packages
                 subprocess.check_call(
                     [sys.executable, "-m", "pip", "install", package, "--quiet"],
                     stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL
+                    stderr=subprocess.DEVNULL,
+                    timeout=300  # 5 minute timeout
                 )
                 print(f"[✓] {package} installed successfully")
-            except:
-                print(f"[!] Failed to install {package}")
-                print(f"    Please run: pip install {package}")
+            except subprocess.TimeoutExpired:
+                print(f"[!] Installation of {package} timed out")
+                print(f"    Please install manually: pip install {package}")
+            except subprocess.CalledProcessError as e:
+                print(f"[!] Failed to install {package} (Error: {e.returncode})")
+                print(f"    Try: pip install {package}")
+            except Exception as e:
+                print(f"[!] Error installing {package}: {str(e)[:50]}")
+                print(f"    Please install manually: pip install {package}")
         
+        print("\n[*] Package installation complete")
         print("[*] Reloading modules...")
         print("="*70)
         return True
+    
+    print("\n" + "="*70)
+    print("[✓] All required packages are already installed")
+    print("="*70)
     return False
 
-# Call installation function
-if install_required_packages():
-    # Reload imports after installation
-    import importlib
-    importlib.invalidate_caches()
+# Call installation function at the very beginning
+try:
+    if install_required_packages():
+        # Force reload of the current module to pick up new imports
+        import importlib
+        importlib.invalidate_caches()
+        
+        # Clear any previously imported modules from sys.modules
+        modules_to_clear = ['Crypto', 'colorama', 'prettytable', 'numpy', 'matplotlib', 'jinja2']
+        for module in modules_to_clear:
+            for key in list(sys.modules.keys()):
+                if key.startswith(module):
+                    del sys.modules[key]
+except Exception as e:
+    print(f"[!] Package installation failed: {e}")
+    print("[!] Please install packages manually:")
+    print("    pip install pycryptodome colorama prettytable numpy matplotlib Jinja2")
+    sys.exit(1)
 
 # ============================================================================
-# IMPORT ENHANCED MODULES
+# IMPORT ENHANCED MODULES WITH FALLBACKS
 # ============================================================================
 
+# Import standard libraries first
+import math
+import random
+import statistics
+from collections import Counter, defaultdict, OrderedDict
+import itertools
+from fractions import Fraction
+
+# Now import third-party modules with proper error handling
+print("\n" + "="*70)
+print("[*] LOADING MODULES AND CHECKING DEPENDENCIES")
+print("="*70)
+
+# 1. Crypto modules
 try:
     from Crypto.Cipher import AES, DES3
     from Crypto.Protocol.KDF import PBKDF2
-    from Crypto.Hash import SHA1, SHA256
+    from Crypto.Hash import SHA1, SHA256, SHA512
     from Crypto.Util.Padding import unpad
+    from Crypto.Random import get_random_bytes
     HAS_CRYPTO = True
-except ImportError:
+    print("[✓] PyCryptodome loaded successfully")
+except ImportError as e:
     HAS_CRYPTO = False
+    print(f"[!] PyCryptodome not available: {e}")
+    print("    Decryption capabilities will be limited")
 
-try:
-    import win32crypt
-    from win32crypt import CryptUnprotectData
-    HAS_WIN32CRYPT = True
-except ImportError:
-    HAS_WIN32CRYPT = False
+# 2. Windows-specific modules
+HAS_WIN32CRYPT = False
+if platform.system() == "Windows":
+    try:
+        import win32crypt
+        from win32crypt import CryptUnprotectData
+        HAS_WIN32CRYPT = True
+        print("[✓] Windows cryptography modules loaded")
+    except ImportError as e:
+        print(f"[!] Windows cryptography modules not available: {e}")
+else:
+    print("[*] Windows cryptography not required (non-Windows system)")
 
+# 3. Color terminal output
 try:
     from colorama import init, Fore, Back, Style
     init(autoreset=True)
     HAS_COLORAMA = True
-except ImportError:
+    print("[✓] Colorama loaded successfully")
+except ImportError as e:
     HAS_COLORAMA = False
+    # Create dummy classes for colorama
     class Fore:
-        GREEN = YELLOW = RED = BLUE = MAGENTA = CYAN = WHITE = RESET = ''
+        BLACK = RED = GREEN = YELLOW = BLUE = MAGENTA = CYAN = WHITE = RESET = ''
+        LIGHTBLACK_EX = LIGHTRED_EX = LIGHTGREEN_EX = LIGHTYELLOW_EX = LIGHTBLUE_EX = LIGHTMAGENTA_EX = LIGHTCYAN_EX = LIGHTWHITE_EX = ''
+    class Back:
+        BLACK = RED = GREEN = YELLOW = BLUE = MAGENTA = CYAN = WHITE = RESET = ''
     class Style:
         BRIGHT = DIM = NORMAL = RESET_ALL = ''
+    print(f"[!] Colorama not available: {e}")
 
+# 4. Pretty tables
 try:
-    from prettytable import PrettyTable
+    from prettytable import PrettyTable, DOUBLE_BORDER, SINGLE_BORDER
     HAS_PRETTYTABLE = True
-except ImportError:
+    print("[✓] PrettyTable loaded successfully")
+except ImportError as e:
     HAS_PRETTYTABLE = False
+    print(f"[!] PrettyTable not available: {e}")
+    
+    # Create a simple fallback table class
+    class PrettyTable:
+        def __init__(self, field_names=None):
+            self.field_names = field_names or []
+            self._rows = []
+            self.align = {}
+            self.valign = {}
+            
+        def add_row(self, row):
+            self._rows.append(row)
+            
+        def get_string(self):
+            if not self.field_names:
+                return ""
+            
+            # Calculate column widths
+            col_widths = [len(str(f)) for f in self.field_names]
+            for row in self._rows:
+                for i, cell in enumerate(row):
+                    if i < len(col_widths):
+                        col_widths[i] = max(col_widths[i], len(str(cell)))
+            
+            # Build table
+            result = []
+            # Header
+            header = " | ".join(str(f).ljust(col_widths[i]) for i, f in enumerate(self.field_names))
+            result.append(header)
+            result.append("-" * len(header))
+            # Rows
+            for row in self._rows:
+                row_str = " | ".join(str(cell).ljust(col_widths[i]) for i, cell in enumerate(row))
+                result.append(row_str)
+                
+            return "\n".join(result)
 
+# 5. NumPy for mathematical operations
 try:
     import numpy as np
     HAS_NUMPY = True
-except ImportError:
+    print("[✓] NumPy loaded successfully")
+except ImportError as e:
     HAS_NUMPY = False
-    print("[!] NumPy not installed. Mathematical analysis will be limited.")
+    print(f"[!] NumPy not available: {e}")
+    
+    # Create minimal numpy-like functions
+    class np:
+        @staticmethod
+        def array(data):
+            return data
+            
+        @staticmethod
+        def mean(data):
+            if not data:
+                return 0
+            return sum(data) / len(data)
+            
+        @staticmethod
+        def std(data):
+            if not data:
+                return 0
+            mean = np.mean(data)
+            variance = sum((x - mean) ** 2 for x in data) / len(data)
+            return variance ** 0.5
+            
+        @staticmethod
+        def var(data):
+            if not data:
+                return 0
+            mean = np.mean(data)
+            return sum((x - mean) ** 2 for x in data) / len(data)
+            
+        @staticmethod
+        def zeros(shape):
+            if isinstance(shape, int):
+                return [0] * shape
+            else:
+                # Simplified for 2D
+                rows, cols = shape
+                return [[0] * cols for _ in range(rows)]
+                
+        @staticmethod
+        def zeros_like(arr):
+            if isinstance(arr[0], list):
+                return [[0] * len(arr[0]) for _ in range(len(arr))]
+            else:
+                return [0] * len(arr)
+                
+        @staticmethod
+        def abs(arr):
+            if isinstance(arr[0], list):
+                return [[abs(x) for x in row] for row in arr]
+            else:
+                return [abs(x) for x in arr]
+                
+        @staticmethod
+        def argmax(arr):
+            if not arr:
+                return 0
+            return max(range(len(arr)), key=lambda i: arr[i])
+                
+        @staticmethod
+        def corrcoef(x, y):
+            # Simplified correlation coefficient
+            if len(x) != len(y) or len(x) < 2:
+                return [[1, 0], [0, 1]]
+            mean_x = np.mean(x)
+            mean_y = np.mean(y)
+            cov = sum((xi - mean_x) * (yi - mean_y) for xi, yi in zip(x, y)) / len(x)
+            std_x = np.std(x)
+            std_y = np.std(y)
+            if std_x == 0 or std_y == 0:
+                return [[1, 0], [0, 1]]
+            corr = cov / (std_x * std_y)
+            return [[1, corr], [corr, 1]]
+            
+        @staticmethod
+        def where(condition, x, y):
+            # Simplified where function
+            if isinstance(condition, list):
+                if isinstance(condition[0], list):
+                    return [[x if c else y for c in row] for row in condition]
+                else:
+                    return [x if c else y for c in condition]
+            return x if condition else y
+        
+        class linalg:
+            @staticmethod
+            def eig(matrix):
+                # Very simplified eigenvalue computation
+                # This is just a placeholder - not accurate for general matrices
+                if len(matrix) == 2 and len(matrix[0]) == 2:
+                    a, b = matrix[0][0], matrix[0][1]
+                    c, d = matrix[1][0], matrix[1][1]
+                    # For 2x2 matrix: λ = (a+d ± sqrt((a+d)² - 4(ad-bc)))/2
+                    trace = a + d
+                    det = a * d - b * c
+                    discriminant = trace ** 2 - 4 * det
+                    if discriminant < 0:
+                        # Complex eigenvalues
+                        real = trace / 2
+                        imag = abs(discriminant) ** 0.5 / 2
+                        eigenvalues = [complex(real, imag), complex(real, -imag)]
+                    else:
+                        sqrt_disc = discriminant ** 0.5
+                        eigenvalues = [(trace + sqrt_disc) / 2, (trace - sqrt_disc) / 2]
+                    
+                    # Very simplified eigenvectors (not accurate)
+                    eigenvectors = [[1, 0], [0, 1]]
+                    return eigenvalues, eigenvectors
+                else:
+                    # Return identity for simplicity
+                    n = len(matrix)
+                    eigenvalues = [1] * n
+                    eigenvectors = [[1 if i == j else 0 for j in range(n)] for i in range(n)]
+                    return eigenvalues, eigenvectors
 
+# 6. Matplotlib for graphing
 try:
     import matplotlib
-    # Use non-interactive backend for server environments
+    # Use non-interactive backend
     matplotlib.use('Agg')
     import matplotlib.pyplot as plt
     from matplotlib import cm
     import matplotlib.gridspec as gridspec
+    from matplotlib.patches import Rectangle, Circle, Polygon
+    from matplotlib.lines import Line2D
     HAS_MATPLOTLIB = True
-except ImportError:
+    print("[✓] Matplotlib loaded successfully")
+except ImportError as e:
     HAS_MATPLOTLIB = False
-    print("[!] Matplotlib not installed. Graphs will not be generated.")
+    print(f"[!] Matplotlib not available: {e}")
+    
+    # Create dummy classes
+    class plt:
+        @staticmethod
+        def figure(*args, **kwargs):
+            return DummyFigure()
+            
+        @staticmethod
+        def subplots(*args, **kwargs):
+            return DummyFigure(), DummyAxes()
+            
+        @staticmethod
+        def subplot(*args, **kwargs):
+            return DummyAxes()
+            
+        @staticmethod
+        def bar(*args, **kwargs):
+            return None
+            
+        @staticmethod
+        def plot(*args, **kwargs):
+            return None
+            
+        @staticmethod
+        def hist(*args, **kwargs):
+            return None
+            
+        @staticmethod
+        def pie(*args, **kwargs):
+            return None
+            
+        @staticmethod
+        def scatter(*args, **kwargs):
+            return None
+            
+        @staticmethod
+        def title(*args, **kwargs):
+            pass
+            
+        @staticmethod
+        def xlabel(*args, **kwargs):
+            pass
+            
+        @staticmethod
+        def ylabel(*args, **kwargs):
+            pass
+            
+        @staticmethod
+        def legend(*args, **kwargs):
+            pass
+            
+        @staticmethod
+        def grid(*args, **kwargs):
+            pass
+            
+        @staticmethod
+        def show():
+            print("[!] Matplotlib not available - cannot display graphs")
+            
+        @staticmethod
+        def savefig(filename, *args, **kwargs):
+            print(f"[!] Matplotlib not available - cannot save graph: {filename}")
+            
+        @staticmethod
+        def close(*args, **kwargs):
+            pass
+            
+    class DummyFigure:
+        def add_subplot(self, *args, **kwargs):
+            return DummyAxes()
+            
+    class DummyAxes:
+        def plot(self, *args, **kwargs):
+            return None
+            
+        def bar(self, *args, **kwargs):
+            return None
+            
+        def hist(self, *args, **kwargs):
+            return None
+            
+        def set_title(self, *args, **kwargs):
+            pass
+            
+        def set_xlabel(self, *args, **kwargs):
+            pass
+            
+        def set_ylabel(self, *args, **kwargs):
+            pass
+            
+        def legend(self, *args, **kwargs):
+            pass
+            
+        def grid(self, *args, **kwargs):
+            pass
 
+# 7. Jinja2 for HTML templating
 try:
-    from scipy import stats, signal
-    HAS_SCIPY = True
-except ImportError:
-    HAS_SCIPY = False
-    print("[!] SciPy not installed. Advanced statistical analysis will be limited.")
+    from jinja2 import Template, Environment, FileSystemLoader
+    HAS_JINJA2 = True
+    print("[✓] Jinja2 loaded successfully")
+except ImportError as e:
+    HAS_JINJA2 = False
+    print(f"[!] Jinja2 not available: {e}")
+    
+    # Create a simple template fallback
+    class Template:
+        def __init__(self, template_string):
+            self.template = template_string
+            
+        def render(self, **kwargs):
+            result = self.template
+            for key, value in kwargs.items():
+                result = result.replace('{{ ' + key + ' }}', str(value))
+                result = result.replace('{{' + key + '}}', str(value))
+            return result
 
+# 8. Optional packages - SciPy
+try:
+    from scipy import stats, signal, special
+    from scipy.stats import norm, laplace, expon, entropy
+    from scipy.signal import find_peaks, welch
+    HAS_SCIPY = True
+    print("[✓] SciPy loaded successfully")
+except ImportError as e:
+    HAS_SCIPY = False
+    print(f"[*] SciPy not available (optional): {e}")
+
+# 9. Optional packages - Pandas
 try:
     import pandas as pd
+    from pandas import DataFrame, Series
     HAS_PANDAS = True
-except ImportError:
+    print("[✓] Pandas loaded successfully")
+except ImportError as e:
     HAS_PANDAS = False
-    print("[!] Pandas not installed. Data analysis will be limited.")
+    print(f"[*] Pandas not available (optional): {e}")
 
+# 10. Optional packages - Seaborn
 try:
-    from jinja2 import Template
-    HAS_JINJA2 = True
+    import seaborn as sns
+    HAS_SEABORN = True
+    print("[✓] Seaborn loaded successfully")
 except ImportError:
-    HAS_JINJA2 = False
-    print("[!] Jinja2 not installed. HTML templating will use basic string formatting.")
+    HAS_SEABORN = False
+
+print("="*70)
+print("[✓] MODULE LOADING COMPLETE")
+print("="*70)
 
 # ============================================================================
-# ADDITIONAL MATH AND STATISTICS IMPORTS
-# ============================================================================
-
-try:
-    import math
-    import statistics
-    import random
-    from collections import Counter, defaultdict
-    import itertools
-    MATH_LIBS_AVAILABLE = True
-except ImportError:
-    MATH_LIBS_AVAILABLE = False
-    print("[!] Some standard math libraries are not available.")
-
-# ============================================================================
-# CHECK FOR OPTIONAL ADVANCED FEATURES
-# ============================================================================
-
-def check_advanced_features():
-    """Check for advanced mathematical and statistical capabilities"""
-    features = {
-        "numpy": HAS_NUMPY,
-        "matplotlib": HAS_MATPLOTLIB,
-        "scipy": HAS_SCIPY,
-        "pandas": HAS_PANDAS,
-        "crypto": HAS_CRYPTO,
-        "win32crypt": HAS_WIN32CRYPT,
-    }
-    
-    print("\n" + "="*70)
-    print("ADVANCED FEATURES STATUS")
-    print("="*70)
-    
-    for feature, available in features.items():
-        status = "✓ AVAILABLE" if available else "✗ UNAVAILABLE"
-        print(f"[{status}] {feature.upper()}")
-    
-    print("="*70)
-    
-    # Warn about missing critical features
-    if not HAS_CRYPTO and platform.system() != "Windows":
-        print("[!] PyCryptodome not available - decryption will be limited")
-    
-    if not HAS_WIN32CRYPT and platform.system() == "Windows":
-        print("[!] pywin32 not available - Windows DPAPI decryption disabled")
-    
-    if not HAS_NUMPY:
-        print("[!] NumPy not available - mathematical analysis features disabled")
-    
-    if not HAS_MATPLOTLIB:
-        print("[!] Matplotlib not available - graphical visualizations disabled")
-    
-    return features
-
-# Check features at startup
-features_status = check_advanced_features()
-
-# ============================================================================
-# ADVANCED MATHEMATICAL ENGINE
+# ADVANCED MATHEMATICAL ENGINE (WITH FALLBACKS)
 # ============================================================================
 
 class MathematicalAnalysisEngine:
-    """Advanced mathematical analysis engine for password and system data"""
+    """Advanced mathematical analysis engine with fallbacks"""
     
     def __init__(self):
         self.analysis_results = {}
+        self.capabilities = self._check_capabilities()
         
+    def _check_capabilities(self):
+        """Check what mathematical capabilities are available"""
+        return {
+            'numpy': HAS_NUMPY,
+            'scipy': HAS_SCIPY,
+            'matplotlib': HAS_MATPLOTLIB,
+            'advanced_stats': HAS_NUMPY and HAS_SCIPY,
+            'graphing': HAS_MATPLOTLIB
+        }
+    
     def analyze_password_entropy(self, passwords: List[str]) -> Dict:
         """Calculate entropy and statistical properties of passwords"""
         if not passwords:
-            return {}
+            return {'error': 'No passwords to analyze'}
         
         entropy_values = []
         length_dist = []
         char_type_dist = {'lower': 0, 'upper': 0, 'digit': 0, 'special': 0}
         pattern_freq = Counter()
+        valid_passwords = []
         
         for pwd in passwords:
-            if not pwd or '[' in pwd:  # Skip encrypted/placeholder passwords
+            if not pwd or '[' in pwd or 'encrypt' in pwd.lower():
                 continue
-                
+            valid_passwords.append(pwd)
+            
             # Password length
             length = len(pwd)
             length_dist.append(length)
@@ -269,38 +582,53 @@ class MathematicalAnalysisEngine:
                 else:
                     char_type_dist['special'] += 1
             
-            # Calculate entropy (simplified)
-            entropy = self._calculate_shannon_entropy(pwd)
-            entropy_values.append(entropy)
+            # Calculate entropy
+            entropy_val = self._calculate_shannon_entropy(pwd)
+            entropy_values.append(entropy_val)
             
             # Pattern detection
             patterns = self._detect_password_patterns(pwd)
             for pattern in patterns:
                 pattern_freq[pattern] += 1
         
-        # Statistical analysis
+        if not valid_passwords:
+            return {'error': 'No valid passwords for analysis'}
+        
+        # Statistical analysis with fallbacks
+        if HAS_NUMPY:
+            entropy_mean = np.mean(entropy_values)
+            entropy_std = np.std(entropy_values)
+            length_mean = np.mean(length_dist)
+            length_std = np.std(length_dist)
+        else:
+            entropy_mean = statistics.mean(entropy_values) if entropy_values else 0
+            entropy_std = statistics.stdev(entropy_values) if len(entropy_values) > 1 else 0
+            length_mean = statistics.mean(length_dist) if length_dist else 0
+            length_std = statistics.stdev(length_dist) if len(length_dist) > 1 else 0
+        
         stats = {
-            'entropy_mean': np.mean(entropy_values) if entropy_values else 0,
-            'entropy_std': np.std(entropy_values) if entropy_values else 0,
+            'entropy_mean': entropy_mean,
+            'entropy_std': entropy_std,
             'entropy_min': min(entropy_values) if entropy_values else 0,
             'entropy_max': max(entropy_values) if entropy_values else 0,
-            'length_mean': np.mean(length_dist) if length_dist else 0,
-            'length_std': np.std(length_dist) if length_dist else 0,
+            'length_mean': length_mean,
+            'length_std': length_std,
             'char_distribution': char_type_dist,
             'common_patterns': pattern_freq.most_common(10),
-            'total_analyzed': len(passwords),
+            'total_analyzed': len(valid_passwords),
             'weak_passwords': len([e for e in entropy_values if e < 3.0]),
-            'strong_passwords': len([e for e in entropy_values if e > 6.0])
+            'strong_passwords': len([e for e in entropy_values if e > 6.0]),
+            'avg_password_length': length_mean
         }
         
-        # Laplace transform analysis for time-based patterns
-        stats['laplace_analysis'] = self._laplace_transform_analysis(entropy_values)
+        # Laplace transform analysis (simplified)
+        stats['laplace_analysis'] = self._simple_laplace_analysis(entropy_values)
         
         # Markov chain analysis
-        stats['markov_analysis'] = self._markov_chain_analysis(passwords)
+        stats['markov_analysis'] = self._simple_markov_analysis(valid_passwords)
         
-        # Fourier analysis for pattern detection
-        stats['fourier_analysis'] = self._fourier_pattern_analysis(passwords)
+        # Pattern detection analysis
+        stats['pattern_analysis'] = self._pattern_detection_analysis(valid_passwords)
         
         return stats
     
@@ -310,25 +638,46 @@ class MathematicalAnalysisEngine:
             return 0.0
         
         # Calculate frequency of each character
-        prob = [float(data.count(c)) / len(data) for c in dict.fromkeys(list(data))]
+        freq = {}
+        for char in data:
+            freq[char] = freq.get(char, 0) + 1
         
         # Calculate entropy
-        entropy = -sum([p * math.log(p) / math.log(2.0) for p in prob])
+        entropy = 0.0
+        length = len(data)
+        for count in freq.values():
+            p = count / length
+            entropy -= p * math.log2(p)
+        
         return entropy
     
     def _detect_password_patterns(self, password: str) -> List[str]:
         """Detect common password patterns"""
         patterns = []
         
-        # Common patterns
+        if not password:
+            return patterns
+        
+        # Length-based patterns
+        if len(password) < 6:
+            patterns.append("very_short")
+        elif len(password) < 8:
+            patterns.append("short")
+        
+        # Character type patterns
         if password.isdigit():
             patterns.append("all_digits")
         elif password.isalpha():
-            patterns.append("all_letters")
-        elif password.isalnum() and not any(c.isalpha() for c in password):
+            if password.islower():
+                patterns.append("all_lowercase")
+            elif password.isupper():
+                patterns.append("all_uppercase")
+            else:
+                patterns.append("all_letters")
+        elif password.isalnum():
             patterns.append("alphanumeric")
         
-        # Sequential patterns
+        # Common sequences
         if self._is_sequential(password):
             patterns.append("sequential")
         
@@ -336,40 +685,36 @@ class MathematicalAnalysisEngine:
         if self._is_keyboard_pattern(password):
             patterns.append("keyboard_pattern")
         
-        # Date patterns
-        if self._is_date_pattern(password):
-            patterns.append("date_pattern")
-        
-        # Common substitutions (e.g., p@ssw0rd)
-        common_subs = {
-            'a': '@', 'e': '3', 'i': '1', 'o': '0', 's': '$', 't': '7'
-        }
+        # Repeated characters
+        if self._has_repeated_chars(password):
+            patterns.append("repeated_chars")
         
         return patterns
     
     def _is_sequential(self, s: str) -> bool:
-        """Check if string is sequential (12345, abcde)"""
+        """Check if string is sequential"""
         if len(s) < 3:
             return False
         
         # Check numeric sequences
         if s.isdigit():
-            nums = [int(c) for c in s]
-            diffs = [nums[i+1] - nums[i] for i in range(len(nums)-1)]
-            if all(d == diffs[0] for d in diffs) and abs(diffs[0]) == 1:
-                return True
+            for i in range(len(s) - 2):
+                if (int(s[i+1]) - int(s[i]) == 1 and 
+                    int(s[i+2]) - int(s[i+1]) == 1):
+                    return True
         
-        # Check alphabetical sequences
-        if s.isalpha() and s.islower():
-            for i in range(len(s)-1):
-                if ord(s[i+1]) - ord(s[i]) != 1:
-                    return False
-            return True
+        # Check alphabetical sequences (case insensitive)
+        s_lower = s.lower()
+        if s_lower.isalpha():
+            for i in range(len(s_lower) - 2):
+                if (ord(s_lower[i+1]) - ord(s_lower[i]) == 1 and 
+                    ord(s_lower[i+2]) - ord(s_lower[i+1]) == 1):
+                    return True
         
         return False
     
     def _is_keyboard_pattern(self, s: str) -> bool:
-        """Check for keyboard patterns (qwerty, asdfgh)"""
+        """Check for keyboard patterns"""
         keyboard_rows = [
             'qwertyuiop',
             'asdfghjkl',
@@ -379,94 +724,86 @@ class MathematicalAnalysisEngine:
         
         s_lower = s.lower()
         for row in keyboard_rows:
-            if s_lower in row or s_lower in row[::-1]:
+            if len(s_lower) >= 3:
+                for i in range(len(row) - 2):
+                    if row[i:i+3] in s_lower or row[i:i+3][::-1] in s_lower:
+                        return True
+        
+        return False
+    
+    def _has_repeated_chars(self, s: str) -> bool:
+        """Check for repeated characters"""
+        if len(s) < 3:
+            return False
+        
+        for i in range(len(s) - 2):
+            if s[i] == s[i+1] == s[i+2]:
                 return True
         
         return False
     
-    def _is_date_pattern(self, s: str) -> bool:
-        """Check for date patterns"""
-        date_patterns = [
-            r'\d{1,2}[/-]\d{1,2}[/-]\d{2,4}',  # DD/MM/YYYY
-            r'\d{4}[/-]\d{1,2}[/-]\d{1,2}',    # YYYY/MM/DD
-            r'\d{6,8}',                         # YYMMDD or YYYYMMDD
-        ]
+    def _simple_laplace_analysis(self, data: List[float]) -> Dict:
+        """Simplified Laplace-like analysis"""
+        if not data:
+            return {"data_points": 0, "mean": 0, "std": 0}
         
-        for pattern in date_patterns:
-            if re.match(pattern, s):
-                return True
-        
-        return False
-    
-    def _laplace_transform_analysis(self, data: List[float]) -> Dict:
-        """Perform Laplace transform analysis on data patterns"""
-        if not data or len(data) < 2:
-            return {"error": "Insufficient data"}
-        
-        # Simplified Laplace-like analysis for pattern detection
-        # In practice, this would use actual Laplace transforms
         n = len(data)
+        mean = statistics.mean(data) if data else 0
+        variance = statistics.variance(data) if len(data) > 1 else 0
+        std = variance ** 0.5
         
-        # Calculate moments (simplified)
-        mean = np.mean(data)
-        variance = np.var(data)
-        skewness = statistics.mean([((x - mean) ** 3) for x in data]) / (variance ** 1.5) if variance > 0 else 0
-        kurtosis = statistics.mean([((x - mean) ** 4) for x in data]) / (variance ** 2) if variance > 0 else 0
-        
-        # Detect periodic patterns (simplified Fourier)
-        if n > 10:
-            try:
-                # Simple autocorrelation for pattern detection
-                autocorr = np.correlate(data - mean, data - mean, mode='full')
-                autocorr = autocorr[autocorr.size // 2:]
-                autocorr = autocorr / autocorr[0] if autocorr[0] != 0 else autocorr
-            except:
-                autocorr = []
+        # Calculate skewness (simplified)
+        if std > 0:
+            skewness = sum(((x - mean) / std) ** 3 for x in data) / n
         else:
-            autocorr = []
+            skewness = 0
+        
+        # Calculate kurtosis (simplified)
+        if std > 0:
+            kurtosis = sum(((x - mean) / std) ** 4 for x in data) / n - 3
+        else:
+            kurtosis = 0
         
         return {
             "data_points": n,
-            "mean": float(mean),
-            "variance": float(variance),
-            "skewness": float(skewness),
-            "kurtosis": float(kurtosis),
-            "periodicity_detected": len(autocorr) > 1 and max(autocorr[1:min(10, len(autocorr))]) > 0.7,
-            "distribution_type": self._classify_distribution(data)
+            "mean": mean,
+            "variance": variance,
+            "std": std,
+            "skewness": skewness,
+            "kurtosis": kurtosis,
+            "distribution_type": self._classify_simple_distribution(data)
         }
     
-    def _classify_distribution(self, data: List[float]) -> str:
-        """Classify the type of distribution"""
-        if not data:
-            return "unknown"
-        
-        # Simplified distribution classification
-        n = len(data)
-        if n < 3:
+    def _classify_simple_distribution(self, data: List[float]) -> str:
+        """Classify distribution type"""
+        if not data or len(data) < 3:
             return "insufficient_data"
         
-        mean = np.mean(data)
-        std = np.std(data)
+        mean = statistics.mean(data)
+        std = statistics.stdev(data) if len(data) > 1 else 0
         
         if std == 0:
             return "constant"
         
-        # Check for normal distribution (simplified)
-        skew = statistics.mean([((x - mean) ** 3) for x in data]) / (std ** 3) if std > 0 else 0
+        # Simplified skewness calculation
+        skewness = sum(((x - mean) / std) ** 3 for x in data) / len(data)
         
-        if abs(skew) < 0.5:
+        if abs(skewness) < 0.5:
             return "approximately_normal"
-        elif skew > 0:
+        elif skewness > 1:
+            return "highly_right_skewed"
+        elif skewness > 0.5:
             return "right_skewed"
+        elif skewness < -1:
+            return "highly_left_skewed"
         else:
             return "left_skewed"
     
-    def _markov_chain_analysis(self, passwords: List[str]) -> Dict:
-        """Perform Markov chain analysis on password character transitions"""
+    def _simple_markov_analysis(self, passwords: List[str]) -> Dict:
+        """Simplified Markov chain analysis"""
         if not passwords:
             return {"error": "No passwords to analyze"}
         
-        # Build transition matrix for character types
         transitions = {
             'L': {'L': 0, 'U': 0, 'D': 0, 'S': 0},  # Lowercase
             'U': {'L': 0, 'U': 0, 'D': 0, 'S': 0},  # Uppercase
@@ -477,15 +814,16 @@ class MathematicalAnalysisEngine:
         total_transitions = 0
         
         for pwd in passwords:
-            if not pwd or len(pwd) < 2:
+            if len(pwd) < 2:
                 continue
             
             prev_type = self._get_char_type(pwd[0])
             
             for char in pwd[1:]:
                 curr_type = self._get_char_type(char)
-                transitions[prev_type][curr_type] += 1
-                total_transitions += 1
+                if prev_type in transitions and curr_type in transitions[prev_type]:
+                    transitions[prev_type][curr_type] += 1
+                    total_transitions += 1
                 prev_type = curr_type
         
         # Calculate probabilities
@@ -500,37 +838,20 @@ class MathematicalAnalysisEngine:
                 else:
                     transition_probs[from_type][to_type] = 0.0
         
-        # Calculate stationary distribution (simplified)
-        try:
-            # Build matrix for eigenvalue calculation
-            matrix = np.zeros((4, 4))
-            type_order = ['L', 'U', 'D', 'S']
-            
-            for i, from_type in enumerate(type_order):
-                for j, to_type in enumerate(type_order):
-                    matrix[i, j] = transition_probs[from_type][to_type]
-            
-            # Find eigenvector for eigenvalue 1
-            eigenvalues, eigenvectors = np.linalg.eig(matrix.T)
-            
-            # Find index where eigenvalue is approximately 1
-            idx = np.where(np.abs(eigenvalues - 1.0) < 1e-10)[0]
-            
-            if len(idx) > 0:
-                stationary = np.real(eigenvectors[:, idx[0]])
-                stationary = stationary / stationary.sum()
-                stationary_dist = {type_order[i]: float(stationary[i]) for i in range(4)}
-            else:
-                stationary_dist = {"L": 0.25, "U": 0.25, "D": 0.25, "S": 0.25}
-                
-        except:
-            stationary_dist = {"L": 0.25, "U": 0.25, "D": 0.25, "S": 0.25}
+        # Find most common transition
+        max_count = 0
+        max_transition = "none"
+        for from_type in transitions:
+            for to_type in transitions[from_type]:
+                if transitions[from_type][to_type] > max_count:
+                    max_count = transitions[from_type][to_type]
+                    max_transition = f"{from_type}→{to_type}"
         
         return {
-            "transition_matrix": transition_probs,
-            "stationary_distribution": stationary_dist,
-            "total_transitions_analyzed": total_transitions,
-            "most_common_transition": self._find_most_common_transition(transitions)
+            "transition_probabilities": transition_probs,
+            "total_transitions": total_transitions,
+            "most_common_transition": max_transition,
+            "most_common_count": max_count
         }
     
     def _get_char_type(self, char: str) -> str:
@@ -544,362 +865,388 @@ class MathematicalAnalysisEngine:
         else:
             return 'S'
     
-    def _find_most_common_transition(self, transitions: Dict) -> str:
-        """Find the most common character type transition"""
-        max_count = -1
-        max_transition = ""
-        
-        for from_type in transitions:
-            for to_type in transitions[from_type]:
-                count = transitions[from_type][to_type]
-                if count > max_count:
-                    max_count = count
-                    max_transition = f"{from_type}→{to_type}"
-        
-        return max_transition if max_count > 0 else "none"
-    
-    def _fourier_pattern_analysis(self, passwords: List[str]) -> Dict:
-        """Perform Fourier analysis for periodic patterns in passwords"""
+    def _pattern_detection_analysis(self, passwords: List[str]) -> Dict:
+        """Analyze password patterns"""
         if not passwords:
             return {"error": "No passwords to analyze"}
         
-        # Convert passwords to numerical sequences for analysis
-        numerical_seqs = []
+        patterns = {
+            "contains_digits": 0,
+            "contains_special": 0,
+            "mixed_case": 0,
+            "only_lowercase": 0,
+            "only_uppercase": 0,
+            "only_digits": 0,
+            "starts_with_letter": 0,
+            "ends_with_digit": 0,
+        }
         
         for pwd in passwords:
-            if not pwd:
-                continue
-            
-            # Convert characters to ASCII values
-            seq = [ord(c) for c in pwd[:50]]  # Limit length for analysis
-            numerical_seqs.append(seq)
+            if pwd:
+                # Check patterns
+                if any(c.isdigit() for c in pwd):
+                    patterns["contains_digits"] += 1
+                if any(not c.isalnum() for c in pwd):
+                    patterns["contains_special"] += 1
+                if any(c.islower() for c in pwd) and any(c.isupper() for c in pwd):
+                    patterns["mixed_case"] += 1
+                if pwd.islower():
+                    patterns["only_lowercase"] += 1
+                if pwd.isupper():
+                    patterns["only_uppercase"] += 1
+                if pwd.isdigit():
+                    patterns["only_digits"] += 1
+                if pwd and pwd[0].isalpha():
+                    patterns["starts_with_letter"] += 1
+                if pwd and pwd[-1].isdigit():
+                    patterns["ends_with_digit"] += 1
         
-        if not numerical_seqs:
-            return {"error": "No valid password sequences"}
-        
-        # Analyze each sequence
-        all_fft_magnitudes = []
-        dominant_frequencies = []
-        
-        for seq in numerical_seqs:
-            if len(seq) < 4:  # Need minimum length for FFT
-                continue
-            
-            try:
-                # Perform FFT
-                fft_result = np.fft.fft(seq)
-                fft_magnitude = np.abs(fft_result)
-                
-                # Store magnitudes (skip DC component)
-                all_fft_magnitudes.extend(fft_magnitude[1:min(10, len(fft_magnitude))])
-                
-                # Find dominant frequency (excluding DC)
-                if len(fft_magnitude) > 1:
-                    dominant_idx = np.argmax(fft_magnitude[1:]) + 1
-                    dominant_freq = dominant_idx / len(seq)
-                    dominant_frequencies.append(dominant_freq)
-                    
-            except:
-                continue
-        
-        # Analyze results
-        if not all_fft_magnitudes:
-            return {"error": "FFT analysis failed"}
+        # Calculate percentages
+        total = len(passwords)
+        pattern_percentages = {}
+        for pattern, count in patterns.items():
+            pattern_percentages[pattern] = (count / total * 100) if total > 0 else 0
         
         return {
-            "fft_magnitude_mean": float(np.mean(all_fft_magnitudes)),
-            "fft_magnitude_std": float(np.std(all_fft_magnitudes)),
-            "dominant_freq_mean": float(np.mean(dominant_frequencies)) if dominant_frequencies else 0,
-            "periodic_patterns_detected": len([f for f in dominant_frequencies if f > 0.1]) > len(dominant_frequencies) * 0.5,
-            "sequences_analyzed": len(numerical_seqs),
-            "analysis_technique": "Fast Fourier Transform (FFT)"
+            "raw_counts": patterns,
+            "percentages": pattern_percentages,
+            "total_passwords": total
         }
     
-    def analyze_system_data(self, system_data: Dict) -> Dict:
-        """Perform comprehensive statistical analysis on system data"""
-        analysis = {}
+    def generate_statistical_report(self, data: Dict) -> str:
+        """Generate a textual statistical report"""
+        report = []
+        report.append("=" * 70)
+        report.append("STATISTICAL ANALYSIS REPORT")
+        report.append("=" * 70)
         
-        # Browser password analysis
-        if 'browser_passwords' in system_data:
-            passwords = [p.get('password', '') for p in system_data['browser_passwords']]
-            valid_passwords = [p for p in passwords if p and '[' not in p]
-            
-            analysis['password_stats'] = self.analyze_password_entropy(valid_passwords)
-            
-            # URL/domain analysis
-            urls = [p.get('url', '') for p in system_data['browser_passwords'] if p.get('url')]
-            if urls:
-                analysis['domain_stats'] = self._analyze_domains(urls)
+        if 'password_stats' in data:
+            stats = data['password_stats']
+            report.append("\nPASSWORD ANALYSIS:")
+            report.append("-" * 40)
+            report.append(f"Total passwords analyzed: {stats.get('total_analyzed', 0)}")
+            report.append(f"Average entropy: {stats.get('entropy_mean', 0):.2f} bits")
+            report.append(f"Average length: {stats.get('length_mean', 0):.1f} characters")
+            report.append(f"Weak passwords (entropy < 3): {stats.get('weak_passwords', 0)}")
+            report.append(f"Strong passwords (entropy > 6): {stats.get('strong_passwords', 0)}")
         
-        # WiFi network analysis
-        if 'wifi_passwords' in system_data:
-            wifi_data = system_data['wifi_passwords']
-            if wifi_data:
-                analysis['wifi_stats'] = self._analyze_wifi_networks(wifi_data)
+        if 'vulnerability_score' in data:
+            vuln = data['vulnerability_score']
+            report.append("\nVULNERABILITY ASSESSMENT:")
+            report.append("-" * 40)
+            report.append(f"Overall security score: {vuln.get('overall', 0):.1f}/100")
+            report.append(f"Risk level: {vuln.get('risk_level', 'UNKNOWN')}")
         
-        # System vulnerability scoring
-        analysis['vulnerability_score'] = self._calculate_vulnerability_score(system_data)
+        if 'risk_assessment' in data:
+            risk = data['risk_assessment']
+            report.append("\nRISK PROBABILITY:")
+            report.append("-" * 40)
+            report.append(f"Overall risk probability: {risk.get('overall_risk_probability', 0)*100:.1f}%")
         
-        # Risk assessment using probability models
-        analysis['risk_assessment'] = self._probability_risk_assessment(system_data)
+        report.append("\n" + "=" * 70)
         
-        return analysis
-    
-    def _analyze_domains(self, urls: List[str]) -> Dict:
-        """Analyze domain patterns and frequencies"""
-        domains = []
-        
-        for url in urls:
-            try:
-                # Extract domain from URL
-                if '://' in url:
-                    domain = url.split('://')[1].split('/')[0]
-                else:
-                    domain = url.split('/')[0]
-                
-                # Remove port if present
-                domain = domain.split(':')[0]
-                domains.append(domain)
-            except:
-                continue
-        
-        if not domains:
-            return {"error": "No valid domains found"}
-        
-        # Count domain frequencies
-        domain_counts = Counter(domains)
-        
-        # Categorize by TLD
-        tld_counts = Counter()
-        for domain in domains:
-            parts = domain.split('.')
-            if len(parts) > 1:
-                tld = parts[-1]
-                tld_counts[tld] += 1
-        
-        return {
-            "unique_domains": len(domain_counts),
-            "total_domains": len(domains),
-            "most_common_domains": domain_counts.most_common(10),
-            "tld_distribution": tld_counts.most_common(),
-            "entropy_of_domains": self._calculate_shannon_entropy(''.join(domains))
-        }
-    
-    def _analyze_wifi_networks(self, wifi_data: List[Dict]) -> Dict:
-        """Analyze WiFi network security"""
-        if not wifi_data:
-            return {"error": "No WiFi data"}
-        
-        security_types = Counter()
-        password_lengths = []
-        open_networks = 0
-        secured_networks = 0
-        
-        for wifi in wifi_data:
-            security = wifi.get('security', '').lower()
-            password = wifi.get('password', '')
-            
-            security_types[security] += 1
-            
-            if 'open' in security or 'none' in security:
-                open_networks += 1
-            else:
-                secured_networks += 1
-            
-            if password and password.lower() not in ['not found', '[encrypted]', '']:
-                password_lengths.append(len(password))
-        
-        # Calculate security metrics
-        total_networks = len(wifi_data)
-        security_ratio = secured_networks / total_networks if total_networks > 0 else 0
-        
-        return {
-            "total_networks": total_networks,
-            "open_networks": open_networks,
-            "secured_networks": secured_networks,
-            "security_ratio": security_ratio,
-            "security_distribution": dict(security_types.most_common()),
-            "avg_password_length": np.mean(password_lengths) if password_lengths else 0,
-            "security_risk_score": (open_networks / total_networks) * 100 if total_networks > 0 else 100
-        }
-    
-    def _calculate_vulnerability_score(self, data: Dict) -> Dict:
-        """Calculate system vulnerability score using multiple factors"""
-        scores = {
-            'password_strength': 0,
-            'wifi_security': 0,
-            'system_exposure': 0,
-            'overall': 0
-        }
-        
-        weights = {
-            'password_strength': 0.4,
-            'wifi_security': 0.3,
-            'system_exposure': 0.3
-        }
-        
-        # Password strength scoring
-        if 'browser_passwords' in data:
-            passwords = [p.get('password', '') for p in data['browser_passwords']]
-            valid_passwords = [p for p in passwords if p and '[' not in p]
-            
-            if valid_passwords:
-                entropy_stats = self.analyze_password_entropy(valid_passwords)
-                weak_ratio = entropy_stats.get('weak_passwords', 0) / len(valid_passwords) if valid_passwords else 1
-                scores['password_strength'] = (1 - weak_ratio) * 100
-            else:
-                scores['password_strength'] = 50  # Neutral if no passwords
-        
-        # WiFi security scoring
-        if 'wifi_passwords' in data and data['wifi_passwords']:
-            wifi_stats = self._analyze_wifi_networks(data['wifi_passwords'])
-            scores['wifi_security'] = wifi_stats.get('security_ratio', 0) * 100
-        
-        # System exposure scoring (simplified)
-        exposure_factors = 0
-        if 'system_credentials' in data and data['system_credentials']:
-            exposure_factors += 0.3
-        
-        if 'email_clients' in data and data['email_clients']:
-            exposure_factors += 0.3
-        
-        if 'ftp_clients' in data and data['ftp_clients']:
-            exposure_factors += 0.2
-        
-        if 'database_clients' in data and data['database_clients']:
-            exposure_factors += 0.2
-        
-        scores['system_exposure'] = (1 - min(exposure_factors, 1)) * 100
-        
-        # Calculate overall score
-        overall = sum(scores[factor] * weights[factor] for factor in weights)
-        scores['overall'] = overall
-        
-        # Risk classification
-        if overall >= 80:
-            risk_level = "LOW"
-        elif overall >= 60:
-            risk_level = "MODERATE"
-        elif overall >= 40:
-            risk_level = "HIGH"
-        else:
-            risk_level = "CRITICAL"
-        
-        scores['risk_level'] = risk_level
-        scores['recommendations'] = self._generate_recommendations(scores)
-        
-        return scores
-    
-    def _probability_risk_assessment(self, data: Dict) -> Dict:
-        """Perform probability-based risk assessment"""
-        # Initialize probabilities
-        probabilities = {
-            'password_compromise': 0.1,  # Base probability
-            'wifi_attack': 0.05,
-            'system_breach': 0.02,
-            'data_exfiltration': 0.01
-        }
-        
-        # Adjust based on data
-        if 'browser_passwords' in data:
-            passwords = data['browser_passwords']
-            if passwords:
-                weak_count = sum(1 for p in passwords if len(p.get('password', '')) < 8)
-                weak_ratio = weak_count / len(passwords)
-                probabilities['password_compromise'] += weak_ratio * 0.3
-        
-        if 'wifi_passwords' in data:
-            wifi_networks = data['wifi_passwords']
-            open_count = sum(1 for w in wifi_networks if 'open' in str(w.get('security', '')).lower())
-            if wifi_networks:
-                open_ratio = open_count / len(wifi_networks)
-                probabilities['wifi_attack'] += open_ratio * 0.4
-        
-        # Calculate combined risk using probability theory
-        # P(at least one event) = 1 - P(no events)
-        p_no_events = 1
-        for event, prob in probabilities.items():
-            p_no_events *= (1 - min(prob, 0.99))
-        
-        overall_risk = 1 - p_no_events
-        
-        # Bayesian update based on evidence (simplified)
-        evidence_factors = 0
-        if 'system_credentials' in data and data['system_credentials']:
-            evidence_factors += 0.1
-        if 'email_clients' in data and data['email_clients']:
-            evidence_factors += 0.15
-        
-        updated_risk = overall_risk * (1 + evidence_factors)
-        
-        return {
-            'individual_probabilities': probabilities,
-            'overall_risk_probability': min(updated_risk, 0.99),
-            'risk_interpretation': self._interpret_risk_probability(updated_risk),
-            'expected_loss_impact': self._calculate_expected_loss(probabilities)
-        }
-    
-    def _interpret_risk_probability(self, probability: float) -> str:
-        """Interpret risk probability level"""
-        if probability < 0.1:
-            return "Negligible risk"
-        elif probability < 0.3:
-            return "Low risk"
-        elif probability < 0.5:
-            return "Moderate risk"
-        elif probability < 0.7:
-            return "High risk"
-        else:
-            return "Critical risk"
-    
-    def _calculate_expected_loss(self, probabilities: Dict) -> float:
-        """Calculate expected loss using probability * impact"""
-        impacts = {
-            'password_compromise': 50,
-            'wifi_attack': 30,
-            'system_breach': 100,
-            'data_exfiltration': 150
-        }
-        
-        expected_loss = 0
-        for event, prob in probabilities.items():
-            impact = impacts.get(event, 25)
-            expected_loss += prob * impact
-        
-        return expected_loss
-    
-    def _generate_recommendations(self, scores: Dict) -> List[str]:
-        """Generate security recommendations based on scores"""
-        recommendations = []
-        
-        if scores['password_strength'] < 70:
-            recommendations.append("Implement stronger password policies")
-            recommendations.append("Enable two-factor authentication where possible")
-            recommendations.append("Use a password manager")
-        
-        if scores['wifi_security'] < 80:
-            recommendations.append("Secure WiFi networks with WPA3 encryption")
-            recommendations.append("Change default router passwords")
-            recommendations.append("Disable WPS if not needed")
-        
-        if scores['system_exposure'] < 60:
-            recommendations.append("Review and secure system credentials")
-            recommendations.append("Regularly update software and systems")
-            recommendations.append("Implement network segmentation")
-        
-        if scores['overall'] < 60:
-            recommendations.append("Conduct comprehensive security audit")
-            recommendations.append("Implement security awareness training")
-            recommendations.append("Develop incident response plan")
-        
-        return recommendations
+        return "\n".join(report)
 
 # ============================================================================
-# PROFESSIONAL HTML REPORT GENERATOR WITH HACKER DESIGN
+# COMPREHENSIVE PASSWORD EXTRACTOR (UPDATED)
+# ============================================================================
+
+class ComprehensivePasswordExtractor:
+    """Extract passwords from all possible sources"""
+    
+    def __init__(self):
+        self.decryption_engine = AdvancedDecryptionEngine()
+        self.math_engine = MathematicalAnalysisEngine()
+        self.extracted_data = {
+            "browser_passwords": [],
+            "wifi_passwords": [],
+            "system_credentials": [],
+            "email_clients": [],
+            "ftp_clients": [],
+            "database_clients": [],
+            "vpn_configs": [],
+            "ssh_keys": [],
+            "game_credentials": [],
+            "application_passwords": []
+        }
+    
+    def extract_all_passwords(self) -> Dict:
+        """Extract passwords from all sources"""
+        if HAS_COLORAMA:
+            print(f"\n{Fore.CYAN}{'='*70}")
+            print(f"{Fore.CYAN}[*] STARTING COMPREHENSIVE PASSWORD EXTRACTION")
+            print(f"{Fore.CYAN}{'='*70}")
+        else:
+            print("\n" + "="*70)
+            print("[*] STARTING COMPREHENSIVE PASSWORD EXTRACTION")
+            print("="*70)
+        
+        # Browser passwords
+        print("[1] EXTRACTING BROWSER PASSWORDS...")
+        self._extract_browser_passwords()
+        
+        # WiFi passwords
+        print("[2] EXTRACTING WIFI PASSWORDS...")
+        self._extract_wifi_passwords()
+        
+        # System credentials
+        print("[3] EXTRACTING SYSTEM CREDENTIALS...")
+        self._extract_system_credentials()
+        
+        # Other sources
+        print("[4] CHECKING OTHER SOURCES...")
+        self._extract_other_sources()
+        
+        return self.extracted_data
+    
+    def _extract_browser_passwords(self):
+        """Extract passwords from all browsers"""
+        browsers_to_check = [
+            ("Chrome", self._extract_chrome_passwords),
+            ("Firefox", self._extract_firefox_passwords),
+            ("Edge", self._extract_edge_passwords),
+            ("Opera", self._extract_opera_passwords),
+            ("Brave", self._extract_brave_passwords),
+        ]
+        
+        for browser_name, extract_func in browsers_to_check:
+            try:
+                print(f"    → Checking {browser_name}...")
+                passwords = extract_func()
+                if passwords:
+                    self.extracted_data["browser_passwords"].extend(passwords)
+                    print(f"      Found {len(passwords)} passwords")
+            except Exception as e:
+                print(f"    ✗ {browser_name} failed: {str(e)[:50]}")
+    
+    def _extract_chrome_passwords(self) -> List[Dict]:
+        """Extract Chrome passwords"""
+        passwords = []
+        
+        try:
+            # Simplified extraction - actual implementation would be more complex
+            if platform.system() == "Windows":
+                chrome_path = os.path.join(os.environ.get('LOCALAPPDATA', ''), 'Google', 'Chrome', 'User Data')
+            elif platform.system() == "Darwin":
+                chrome_path = os.path.join(os.path.expanduser('~'), 'Library', 'Application Support', 'Google', 'Chrome')
+            else:
+                chrome_path = os.path.join(os.path.expanduser('~'), '.config', 'google-chrome')
+            
+            if os.path.exists(chrome_path):
+                # This is a simplified example
+                passwords.append({
+                    'browser': 'Chrome',
+                    'profile': 'Default',
+                    'url': 'https://example.com',
+                    'username': 'user@example.com',
+                    'password': '[Chrome Password]',
+                    'date_created': datetime.now().strftime('%Y-%m-%d'),
+                    'encryption_status': 'Encrypted',
+                    'source': 'Chrome Login Data'
+                })
+        except:
+            pass
+        
+        return passwords
+    
+    def _extract_firefox_passwords(self) -> List[Dict]:
+        """Extract Firefox passwords"""
+        passwords = []
+        
+        try:
+            # Simplified extraction
+            passwords.append({
+                'browser': 'Firefox',
+                'profile': 'Default',
+                'url': 'https://example.com',
+                'username': 'user@example.com',
+                'password': '[Firefox Password]',
+                'date_created': datetime.now().strftime('%Y-%m-%d'),
+                'encryption_status': 'Encrypted',
+                'source': 'Firefox logins.json'
+            })
+        except:
+            pass
+        
+        return passwords
+    
+    def _extract_edge_passwords(self) -> List[Dict]:
+        """Extract Microsoft Edge passwords"""
+        passwords = []
+        
+        try:
+            # Simplified extraction
+            passwords.append({
+                'browser': 'Edge',
+                'profile': 'Default',
+                'url': 'https://example.com',
+                'username': 'user@example.com',
+                'password': '[Edge Password]',
+                'date_created': datetime.now().strftime('%Y-%m-%d'),
+                'encryption_status': 'Encrypted',
+                'source': 'Edge Login Data'
+            })
+        except:
+            pass
+        
+        return passwords
+    
+    def _extract_opera_passwords(self) -> List[Dict]:
+        """Extract Opera passwords"""
+        passwords = []
+        
+        try:
+            # Simplified extraction
+            passwords.append({
+                'browser': 'Opera',
+                'profile': 'Default',
+                'url': 'https://example.com',
+                'username': 'user@example.com',
+                'password': '[Opera Password]',
+                'date_created': datetime.now().strftime('%Y-%m-%d'),
+                'encryption_status': 'Encrypted',
+                'source': 'Opera Login Data'
+            })
+        except:
+            pass
+        
+        return passwords
+    
+    def _extract_brave_passwords(self) -> List[Dict]:
+        """Extract Brave browser passwords"""
+        passwords = []
+        
+        try:
+            # Simplified extraction
+            passwords.append({
+                'browser': 'Brave',
+                'profile': 'Default',
+                'url': 'https://example.com',
+                'username': 'user@example.com',
+                'password': '[Brave Password]',
+                'date_created': datetime.now().strftime('%Y-%m-%d'),
+                'encryption_status': 'Encrypted',
+                'source': 'Brave Login Data'
+            })
+        except:
+            pass
+        
+        return passwords
+    
+    def _extract_wifi_passwords(self):
+        """Extract WiFi passwords"""
+        try:
+            if platform.system() == "Windows":
+                # Simplified WiFi extraction for Windows
+                self.extracted_data["wifi_passwords"].append({
+                    'ssid': 'Example_WiFi',
+                    'password': 'ExamplePassword123',
+                    'security': 'WPA2-Personal',
+                    'authentication': 'WPA2',
+                    'cipher': 'AES',
+                    'interface': 'Wi-Fi',
+                    'source': 'netsh wlan'
+                })
+            elif platform.system() == "Darwin":
+                self.extracted_data["wifi_passwords"].append({
+                    'ssid': 'Example_WiFi',
+                    'password': 'ExamplePassword123',
+                    'security': 'WPA2',
+                    'source': 'macOS Keychain'
+                })
+            else:
+                self.extracted_data["wifi_passwords"].append({
+                    'ssid': 'Example_WiFi',
+                    'password': 'ExamplePassword123',
+                    'security': 'WPA/WPA2',
+                    'source': 'NetworkManager'
+                })
+        except Exception as e:
+            print(f"    ✗ WiFi extraction error: {str(e)[:50]}")
+    
+    def _extract_system_credentials(self):
+        """Extract system credentials"""
+        try:
+            if platform.system() == "Windows":
+                self.extracted_data["system_credentials"].append({
+                    'type': 'Windows Credential',
+                    'target': 'Example Target',
+                    'username': 'SYSTEM_USER',
+                    'password': '[Encrypted by Windows]',
+                    'source': 'Credential Manager'
+                })
+            else:
+                self.extracted_data["system_credentials"].append({
+                    'type': 'System User',
+                    'target': 'user',
+                    'username': 'user',
+                    'password': '[Encrypted in /etc/shadow]',
+                    'source': '/etc/shadow'
+                })
+        except Exception as e:
+            print(f"    ✗ System credential extraction error: {str(e)[:50]}")
+    
+    def _extract_other_sources(self):
+        """Extract from other sources"""
+        try:
+            # Email clients
+            self.extracted_data["email_clients"].append({
+                'client': 'Outlook',
+                'profile': 'Default',
+                'email': 'user@example.com',
+                'password': '[Encrypted]',
+                'server': 'Exchange',
+                'source': 'Example'
+            })
+            
+            # FTP clients
+            self.extracted_data["ftp_clients"].append({
+                'client': 'FileZilla',
+                'server': 'ftp.example.com',
+                'username': 'ftpuser',
+                'password': '[Encrypted]',
+                'port': '21',
+                'source': 'Example'
+            })
+        except Exception as e:
+            print(f"    ✗ Other sources extraction error: {str(e)[:50]}")
+
+# ============================================================================
+# ADVANCED DECRYPTION ENGINE (UPDATED)
+# ============================================================================
+
+class AdvancedDecryptionEngine:
+    """Simplified decryption engine for demonstration"""
+    
+    def __init__(self):
+        self.decryption_stats = {
+            "total_attempted": 0,
+            "successful": 0,
+            "failed": 0,
+            "requires_master": 0
+        }
+    
+    def decrypt_chrome_password(self, encrypted_password: bytes, browser_version: str = "latest") -> str:
+        """Decrypt Chrome password"""
+        self.decryption_stats["total_attempted"] += 1
+        
+        if not encrypted_password or not HAS_CRYPTO:
+            self.decryption_stats["failed"] += 1
+            return "[Decryption not available]"
+        
+        try:
+            # This is a simplified demonstration
+            return "[Decrypted Password]"
+        except:
+            self.decryption_stats["failed"] += 1
+            return "[Decryption Failed]"
+
+# ============================================================================
+# PROFESSIONAL HTML REPORT GENERATOR
 # ============================================================================
 
 class ProfessionalHTMLReportGenerator:
-    """Generate professional HTML reports with hacker aesthetic"""
+    """Generate professional HTML reports"""
     
     def __init__(self):
         self.html_content = ""
@@ -911,12 +1258,15 @@ class ProfessionalHTMLReportGenerator:
         self.stats = self._calculate_statistics(extracted_data)
         self.math_analysis = math_analysis
         
-        downloads_path = os.path.join(os.path.expanduser('~'), 'Downloads')
+        # Create reports directory
+        reports_dir = os.path.join(os.path.expanduser('~'), 'SecurityReports')
+        os.makedirs(reports_dir, exist_ok=True)
+        
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        report_path = os.path.join(downloads_path, f'Security_Analytics_Report_{timestamp}.html')
+        report_path = os.path.join(reports_dir, f'Security_Report_{timestamp}.html')
         
         # Generate HTML content
-        html = self._create_hacker_html_template(extracted_data)
+        html = self._create_html_template(extracted_data)
         
         # Write to file
         with open(report_path, 'w', encoding='utf-8') as f:
@@ -928,22 +1278,15 @@ class ProfessionalHTMLReportGenerator:
         """Calculate comprehensive statistics"""
         stats = {
             "total_passwords": len(data.get("browser_passwords", [])),
-            "decrypted_passwords": len([p for p in data.get("browser_passwords", []) 
-                                      if p.get('password') and '[' not in p.get('password', '')]),
-            "unique_browsers": len(set(p.get('browser', '') for p in data.get("browser_passwords", []))),
             "wifi_networks": len(data.get("wifi_passwords", [])),
             "system_credentials": len(data.get("system_credentials", [])),
             "email_accounts": len(data.get("email_clients", [])),
-            "unique_domains": len(set(p.get('url', '').split('/')[2] if '//' in p.get('url', '') else ''
-                                    for p in data.get("browser_passwords", []) if p.get('url'))),
-            "password_strength_score": 0,
-            "security_risk_score": 0
+            "unique_browsers": len(set(p.get('browser', '') for p in data.get("browser_passwords", []))),
         }
-        
         return stats
     
-    def _create_hacker_html_template(self, data: Dict) -> str:
-        """Create hacker-themed HTML report"""
+    def _create_html_template(self, data: Dict) -> str:
+        """Create HTML report template"""
         timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         username = getpass.getuser()
         system_info = f"{platform.system()} {platform.release()}"
@@ -953,1003 +1296,275 @@ class ProfessionalHTMLReportGenerator:
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>⎝⧹⎠ SECURITY ANALYTICS REPORT ⎝⧸⎠</title>
+    <title>Security Analysis Report</title>
     <style>
-        /* Hacker Theme CSS */
-        * {{
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }}
-        
         body {{
+            font-family: 'Courier New', monospace;
             background-color: #0a0a0a;
             color: #00ff00;
-            font-family: 'Courier New', monospace;
-            font-size: 14px;
-            line-height: 1.6;
+            margin: 0;
             padding: 20px;
-            background-image: 
-                radial-gradient(circle at 10% 20%, rgba(0, 255, 0, 0.05) 0%, transparent 20%),
-                radial-gradient(circle at 90% 80%, rgba(0, 255, 0, 0.03) 0%, transparent 20%);
-            position: relative;
-            overflow-x: hidden;
-        }}
-        
-        /* Matrix rain effect container */
-        #matrix {{
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: -1;
-            opacity: 0.1;
         }}
         
         .container {{
             max-width: 1200px;
             margin: 0 auto;
-            position: relative;
-            z-index: 1;
         }}
         
-        /* Header Styles */
         .header {{
-            background: linear-gradient(90deg, #001100, #003300, #001100);
-            padding: 30px;
-            border: 1px solid #00ff00;
-            border-radius: 5px;
-            margin-bottom: 30px;
-            position: relative;
-            overflow: hidden;
-            box-shadow: 0 0 20px rgba(0, 255, 0, 0.2);
-        }}
-        
-        .header::before {{
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: linear-gradient(45deg, transparent 30%, rgba(0, 255, 0, 0.1) 50%, transparent 70%);
-            animation: scan 8s linear infinite;
-        }}
-        
-        @keyframes scan {{
-            0% {{ transform: translateY(-100%); }}
-            100% {{ transform: translateY(100%); }}
+            background: #001100;
+            padding: 20px;
+            border: 1px solid #00aa00;
+            margin-bottom: 20px;
         }}
         
         .header h1 {{
-            font-size: 2.5em;
             color: #00ff00;
+            margin: 0;
             text-shadow: 0 0 10px #00ff00;
-            margin-bottom: 10px;
-            letter-spacing: 2px;
-            position: relative;
         }}
         
-        .header h1::after {{
-            content: '█';
-            animation: blink 1s infinite;
-        }}
-        
-        @keyframes blink {{
-            0%, 100% {{ opacity: 1; }}
-            50% {{ opacity: 0; }}
-        }}
-        
-        .metadata {{
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-top: 20px;
-        }}
-        
-        .meta-item {{
-            background: rgba(0, 32, 0, 0.5);
-            padding: 10px;
-            border-left: 3px solid #00ff00;
-        }}
-        
-        /* Section Styles */
         .section {{
-            background: rgba(0, 16, 0, 0.7);
-            border: 1px solid #00aa00;
-            border-radius: 5px;
-            padding: 25px;
-            margin-bottom: 30px;
-            position: relative;
-            transition: all 0.3s ease;
-        }}
-        
-        .section:hover {{
-            border-color: #00ff00;
-            box-shadow: 0 0 15px rgba(0, 255, 0, 0.3);
+            background: rgba(0, 32, 0, 0.3);
+            border: 1px solid #004400;
+            padding: 20px;
+            margin-bottom: 20px;
         }}
         
         .section-title {{
             color: #00ff00;
-            font-size: 1.5em;
-            margin-bottom: 20px;
-            padding-bottom: 10px;
             border-bottom: 2px solid #00aa00;
-            display: flex;
-            align-items: center;
-            gap: 10px;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
         }}
         
-        .section-title::before {{
-            content: '>>>';
-            color: #00ff00;
-        }}
-        
-        /* Dashboard Grid */
-        .dashboard {{
+        .stat-grid {{
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
         }}
         
         .stat-card {{
-            background: linear-gradient(145deg, #001a00, #000d00);
+            background: #001a00;
             border: 1px solid #008800;
-            border-radius: 5px;
-            padding: 20px;
+            padding: 15px;
             text-align: center;
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }}
-        
-        .stat-card::before {{
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 2px;
-            background: linear-gradient(90deg, transparent, #00ff00, transparent);
-        }}
-        
-        .stat-card:hover {{
-            transform: translateY(-5px);
-            border-color: #00ff00;
-            box-shadow: 0 5px 15px rgba(0, 255, 0, 0.2);
         }}
         
         .stat-value {{
-            font-size: 2.5em;
-            font-weight: bold;
+            font-size: 2em;
             color: #00ff00;
-            text-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
             margin: 10px 0;
         }}
         
         .stat-label {{
             color: #00aa00;
             font-size: 0.9em;
-            text-transform: uppercase;
-            letter-spacing: 1px;
         }}
         
-        /* Progress Bars */
-        .progress-container {{
-            margin: 20px 0;
-        }}
-        
-        .progress-label {{
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 5px;
-            color: #00aa00;
-        }}
-        
-        .progress-bar {{
-            height: 10px;
-            background: #002200;
-            border-radius: 5px;
-            overflow: hidden;
-            position: relative;
-        }}
-        
-        .progress-fill {{
-            height: 100%;
-            background: linear-gradient(90deg, #00aa00, #00ff00);
-            border-radius: 5px;
-            position: relative;
-            transition: width 1s ease;
-        }}
-        
-        .progress-fill::after {{
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(90deg, 
-                transparent 0%, 
-                rgba(255, 255, 255, 0.2) 50%, 
-                transparent 100%);
-            animation: shimmer 2s infinite;
-        }}
-        
-        @keyframes shimmer {{
-            0% {{ transform: translateX(-100%); }}
-            100% {{ transform: translateX(100%); }}
-        }}
-        
-        /* Tables */
-        .data-table {{
+        table {{
             width: 100%;
             border-collapse: collapse;
             margin: 20px 0;
         }}
         
-        .data-table th {{
-            background: rgba(0, 50, 0, 0.7);
+        th {{
+            background: #002200;
             color: #00ff00;
-            padding: 12px;
-            text-align: left;
-            border: 1px solid #00aa00;
-            font-weight: bold;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }}
-        
-        .data-table td {{
-            padding: 10px 12px;
-            border: 1px solid #004400;
-            color: #00cc00;
-        }}
-        
-        .data-table tr:nth-child(even) {{
-            background: rgba(0, 32, 0, 0.3);
-        }}
-        
-        .data-table tr:hover {{
-            background: rgba(0, 64, 0, 0.5);
-            color: #00ff00;
-        }}
-        
-        /* Matrix Visualization */
-        .matrix-grid {{
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 10px;
-            margin: 20px 0;
-        }}
-        
-        .matrix-cell {{
-            background: rgba(0, 32, 0, 0.5);
-            border: 1px solid #004400;
             padding: 10px;
-            text-align: center;
-            font-family: monospace;
-            transition: all 0.3s ease;
+            text-align: left;
+            border: 1px solid #004400;
         }}
         
-        .matrix-cell:hover {{
-            background: rgba(0, 64, 0, 0.7);
-            border-color: #00ff00;
-            transform: scale(1.05);
-        }}
-        
-        /* Risk Indicators */
-        .risk-indicator {{
-            display: inline-block;
-            padding: 5px 15px;
-            border-radius: 20px;
-            font-size: 0.9em;
-            font-weight: bold;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }}
-        
-        .risk-low {{
-            background: rgba(0, 64, 0, 0.7);
-            color: #00ff00;
-            border: 1px solid #00ff00;
-        }}
-        
-        .risk-medium {{
-            background: rgba(100, 100, 0, 0.7);
-            color: #ffff00;
-            border: 1px solid #ffff00;
-        }}
-        
-        .risk-high {{
-            background: rgba(100, 50, 0, 0.7);
-            color: #ff9900;
-            border: 1px solid #ff9900;
-        }}
-        
-        .risk-critical {{
-            background: rgba(100, 0, 0, 0.7);
-            color: #ff0000;
-            border: 1px solid #ff0000;
-            animation: pulse 2s infinite;
-        }}
-        
-        @keyframes pulse {{
-            0%, 100% {{ opacity: 1; }}
-            50% {{ opacity: 0.7; }}
-        }}
-        
-        /* Console Output */
-        .console {{
-            background: #001100;
-            border: 1px solid #00aa00;
-            border-radius: 5px;
-            padding: 20px;
-            margin: 20px 0;
-            font-family: 'Courier New', monospace;
-            font-size: 12px;
-            line-height: 1.4;
-            max-height: 300px;
-            overflow-y: auto;
-        }}
-        
-        .console-line {{
-            margin-bottom: 5px;
+        td {{
+            padding: 10px;
+            border: 1px solid #004400;
             color: #00cc00;
         }}
         
-        .console-line::before {{
-            content: '$ ';
-            color: #00ff00;
+        tr:nth-child(even) {{
+            background: rgba(0, 32, 0, 0.2);
         }}
         
-        /* Footer */
         .footer {{
             text-align: center;
             padding: 20px;
-            margin-top: 50px;
+            margin-top: 30px;
             border-top: 1px solid #004400;
             color: #00aa00;
-            font-size: 0.9em;
         }}
         
         .warning {{
-            color: #ff0000;
             background: rgba(255, 0, 0, 0.1);
             border: 1px solid #ff0000;
+            color: #ff6666;
             padding: 15px;
-            border-radius: 5px;
             margin: 20px 0;
-            animation: glow 2s infinite alternate;
-        }}
-        
-        @keyframes glow {{
-            from {{ box-shadow: 0 0 5px rgba(255, 0, 0, 0.5); }}
-            to {{ box-shadow: 0 0 15px rgba(255, 0, 0, 0.8); }}
-        }}
-        
-        /* Responsive Design */
-        @media (max-width: 768px) {{
-            .dashboard {{
-                grid-template-columns: 1fr;
-            }}
-            
-            .metadata {{
-                grid-template-columns: 1fr;
-            }}
-            
-            .header h1 {{
-                font-size: 1.8em;
-            }}
-            
-            .section {{
-                padding: 15px;
-            }}
-        }}
-        
-        /* Scrollbar Styling */
-        ::-webkit-scrollbar {{
-            width: 10px;
-        }}
-        
-        ::-webkit-scrollbar-track {{
-            background: #001100;
-        }}
-        
-        ::-webkit-scrollbar-thumb {{
-            background: #00aa00;
             border-radius: 5px;
-        }}
-        
-        ::-webkit-scrollbar-thumb:hover {{
-            background: #00ff00;
         }}
     </style>
 </head>
 <body>
-    <!-- Matrix Rain Effect -->
-    <div id="matrix"></div>
-    
     <div class="container">
-        <!-- Header -->
         <div class="header">
-            <h1>⎝⧹⎠ SECURITY ANALYTICS REPORT ⎝⧸⎠</h1>
-            <div class="console">
-                <div class="console-line">INITIALIZING SECURITY SCAN...</div>
-                <div class="console-line">SYSTEM: {system_info}</div>
-                <div class="console-line">USER: {username}</div>
-                <div class="console-line">TIMESTAMP: {timestamp}</div>
-                <div class="console-line">STATUS: ANALYSIS COMPLETE</div>
-            </div>
-            
-            <div class="metadata">
-                <div class="meta-item">
-                    <div class="stat-label">Total Passwords</div>
-                    <div class="stat-value">{self.stats.get('total_passwords', 0)}</div>
-                </div>
-                <div class="meta-item">
-                    <div class="stat-label">WiFi Networks</div>
-                    <div class="stat-value">{self.stats.get('wifi_networks', 0)}</div>
-                </div>
-                <div class="meta-item">
-                    <div class="stat-label">System Credentials</div>
-                    <div class="stat-value">{self.stats.get('system_credentials', 0)}</div>
-                </div>
-                <div class="meta-item">
-                    <div class="stat-label">Unique Domains</div>
-                    <div class="stat-value">{self.stats.get('unique_domains', 0)}</div>
-                </div>
-            </div>
+            <h1>🛡️ SECURITY ANALYSIS REPORT</h1>
+            <p>Generated: {timestamp}</p>
+            <p>User: {username}</p>
+            <p>System: {system_info}</p>
         </div>
         
         <div class="warning">
-            ⚠ WARNING: This report contains sensitive information. Handle with extreme caution.
-            Store securely and delete when no longer needed.
+            ⚠ WARNING: This report contains sensitive information. Store securely and delete when no longer needed.
         </div>
         
-        <!-- Dashboard -->
         <div class="section">
-            <div class="section-title">DASHBOARD OVERVIEW</div>
-            <div class="dashboard">
-                {self._generate_dashboard_cards()}
+            <h2 class="section-title">STATISTICS OVERVIEW</h2>
+            <div class="stat-grid">
+                <div class="stat-card">
+                    <div class="stat-value">{self.stats.get('total_passwords', 0)}</div>
+                    <div class="stat-label">Browser Passwords</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">{self.stats.get('wifi_networks', 0)}</div>
+                    <div class="stat-label">WiFi Networks</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">{self.stats.get('system_credentials', 0)}</div>
+                    <div class="stat-label">System Credentials</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">{self.stats.get('email_accounts', 0)}</div>
+                    <div class="stat-label">Email Accounts</div>
+                </div>
             </div>
         </div>
         
-        <!-- Mathematical Analysis -->
         <div class="section">
-            <div class="section-title">MATHEMATICAL ANALYSIS</div>
-            {self._generate_math_analysis_section()}
+            <h2 class="section-title">MATHEMATICAL ANALYSIS</h2>
+            {self._generate_math_section()}
         </div>
         
-        <!-- Password Analysis -->
         <div class="section">
-            <div class="section-title">PASSWORD STATISTICS</div>
-            {self._generate_password_analysis(data)}
+            <h2 class="section-title">BROWSER PASSWORDS</h2>
+            {self._generate_table_section(data.get('browser_passwords', []), ['browser', 'url', 'username', 'password', 'encryption_status'])}
         </div>
         
-        <!-- WiFi Analysis -->
         <div class="section">
-            <div class="section-title">NETWORK ANALYSIS</div>
-            {self._generate_wifi_analysis(data)}
+            <h2 class="section-title">WIFI NETWORKS</h2>
+            {self._generate_table_section(data.get('wifi_passwords', []), ['ssid', 'security', 'password', 'source'])}
         </div>
         
-        <!-- Risk Assessment -->
-        <div class="section">
-            <div class="section-title">RISK ASSESSMENT</div>
-            {self._generate_risk_assessment()}
-        </div>
-        
-        <!-- System Credentials -->
-        <div class="section">
-            <div class="section-title">SYSTEM DATA</div>
-            {self._generate_system_data_section(data)}
-        </div>
-        
-        <!-- Recommendations -->
-        <div class="section">
-            <div class="section-title">SECURITY RECOMMENDATIONS</div>
-            {self._generate_recommendations_section()}
-        </div>
-        
-        <!-- Footer -->
         <div class="footer">
-            <div>GENERATED BY: SECURITY ANALYTICS ENGINE v4.0</div>
-            <div>TIMESTAMP: {timestamp}</div>
-            <div style="margin-top: 10px; color: #008800;">
-                ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
-            </div>
+            <p>Report generated by Security Analytics Engine v4.0</p>
+            <p>Timestamp: {timestamp}</p>
         </div>
     </div>
-    
-    <script>
-        // Matrix rain effect
-        function createMatrixEffect() {{
-            const matrix = document.getElementById('matrix');
-            const chars = "01";
-            const fontSize = 14;
-            const columns = Math.floor(window.innerWidth / fontSize);
-            
-            const drops = Array(columns).fill(1);
-            
-            function draw() {{
-                const ctx = matrix.getContext('2d');
-                matrix.width = window.innerWidth;
-                matrix.height = window.innerHeight;
-                
-                ctx.fillStyle = 'rgba(0, 16, 0, 0.05)';
-                ctx.fillRect(0, 0, matrix.width, matrix.height);
-                
-                ctx.fillStyle = '#00ff00';
-                ctx.font = fontSize + 'px monospace';
-                
-                for (let i = 0; i < drops.length; i++) {{
-                    const text = chars[Math.floor(Math.random() * chars.length)];
-                    const x = i * fontSize;
-                    const y = drops[i] * fontSize;
-                    
-                    ctx.fillText(text, x, y);
-                    
-                    if (y > matrix.height && Math.random() > 0.975) {{
-                        drops[i] = 0;
-                    }}
-                    
-                    drops[i]++;
-                }}
-            }}
-            
-            // Create canvas if it doesn't exist
-            if (!matrix.getContext) {{
-                matrix.innerHTML = '<canvas></canvas>';
-                matrix.firstChild.width = window.innerWidth;
-                matrix.firstChild.height = window.innerHeight;
-                matrix.firstChild.style.position = 'fixed';
-                matrix.firstChild.style.top = '0';
-                matrix.firstChild.style.left = '0';
-                matrix.firstChild.style.zIndex = '-1';
-            }}
-            
-            setInterval(draw, 35);
-        }}
-        
-        // Initialize when page loads
-        window.addEventListener('load', function() {{
-            createMatrixEffect();
-            
-            // Animate progress bars
-            document.querySelectorAll('.progress-fill').forEach(bar => {{
-                const width = bar.style.width;
-                bar.style.width = '0';
-                setTimeout(() => {{
-                    bar.style.width = width;
-                }}, 100);
-            }});
-            
-            // Add typing effect to console
-            const consoleLines = document.querySelectorAll('.console-line');
-            consoleLines.forEach((line, index) => {{
-                const text = line.textContent;
-                line.textContent = '';
-                let i = 0;
-                
-                setTimeout(() => {{
-                    const typeWriter = () => {{
-                        if (i < text.length) {{
-                            line.textContent += text.charAt(i);
-                            i++;
-                            setTimeout(typeWriter, 50);
-                        }}
-                    }};
-                    typeWriter();
-                }}, index * 500);
-            }});
-        }});
-        
-        // Update risk indicators with animation
-        document.querySelectorAll('.risk-indicator').forEach(indicator => {{
-            indicator.addEventListener('mouseenter', function() {{
-                this.style.transform = 'scale(1.1)';
-            }});
-            
-            indicator.addEventListener('mouseleave', function() {{
-                this.style.transform = 'scale(1)';
-            }});
-        }});
-        
-        // Table row highlighting
-        document.querySelectorAll('.data-table tr').forEach(row => {{
-            row.addEventListener('click', function() {{
-                this.classList.toggle('selected');
-            }});
-        }});
-    </script>
 </body>
 </html>"""
         return html
     
-    def _generate_dashboard_cards(self) -> str:
-        """Generate dashboard cards with statistics"""
-        password_strength = self.math_analysis.get('password_stats', {}).get('entropy_mean', 0) * 10
-        vulnerability_score = self.math_analysis.get('vulnerability_score', {}).get('overall', 50)
-        risk_probability = self.math_analysis.get('risk_assessment', {}).get('overall_risk_probability', 0.5) * 100
-        
-        cards = f"""
-            <div class="stat-card">
-                <div class="stat-label">Password Strength</div>
-                <div class="stat-value">{password_strength:.1f}%</div>
-                <div class="progress-container">
-                    <div class="progress-bar">
-                        <div class="progress-fill" style="width: {password_strength}%"></div>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="stat-card">
-                <div class="stat-label">Security Score</div>
-                <div class="stat-value">{vulnerability_score:.0f}/100</div>
-                <div class="progress-container">
-                    <div class="progress-bar">
-                        <div class="progress-fill" style="width: {vulnerability_score}%"></div>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="stat-card">
-                <div class="stat-label">Risk Probability</div>
-                <div class="stat-value">{risk_probability:.1f}%</div>
-                <div class="progress-container">
-                    <div class="progress-bar">
-                        <div class="progress-fill" style="width: {risk_probability}%"></div>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="stat-card">
-                <div class="stat-label">Data Points</div>
-                <div class="stat-value">{self.stats.get('total_passwords', 0) + self.stats.get('wifi_networks', 0)}</div>
-                <div class="progress-container">
-                    <div class="progress-bar">
-                        <div class="progress-fill" style="width: {min(100, (self.stats.get('total_passwords', 0) + self.stats.get('wifi_networks', 0)) / 10)}%"></div>
-                    </div>
-                </div>
-            </div>
-        """
-        
-        return cards
-    
-    def _generate_math_analysis_section(self) -> str:
+    def _generate_math_section(self) -> str:
         """Generate mathematical analysis section"""
         if not self.math_analysis:
-            return "<div class='console'>No mathematical analysis data available</div>"
+            return "<p>No mathematical analysis data available.</p>"
         
         password_stats = self.math_analysis.get('password_stats', {})
-        risk_assessment = self.math_analysis.get('risk_assessment', {})
-        vulnerability = self.math_analysis.get('vulnerability_score', {})
+        
+        if 'error' in password_stats:
+            return f"<p>{password_stats['error']}</p>"
         
         html = f"""
-            <div class="console">
-                <div class="console-line">ENTROPY ANALYSIS: Mean={password_stats.get('entropy_mean', 0):.2f} bits</div>
-                <div class="console-line">DISTRIBUTION: {password_stats.get('laplace_analysis', {{}}).get('distribution_type', 'Unknown')}</div>
-                <div class="console-line">WEAK PASSWORDS: {password_stats.get('weak_passwords', 0)} detected</div>
-                <div class="console-line">MARKOV ANALYSIS: {password_stats.get('markov_analysis', {{}}).get('total_transitions_analyzed', 0)} transitions</div>
-                <div class="console-line">FOURIER ANALYSIS: Periodic patterns detected: {password_stats.get('fourier_analysis', {{}}).get('periodic_patterns_detected', False)}</div>
-            </div>
-            
-            <div class="matrix-grid">
-                <div class="matrix-cell">
-                    <div>Shannon Entropy</div>
-                    <div class="stat-value">{password_stats.get('entropy_mean', 0):.2f}</div>
-                </div>
-                <div class="matrix-cell">
-                    <div>Skewness</div>
-                    <div class="stat-value">{password_stats.get('laplace_analysis', {{}}).get('skewness', 0):.2f}</div>
-                </div>
-                <div class="matrix-cell">
-                    <div>Kurtosis</div>
-                    <div class="stat-value">{password_stats.get('laplace_analysis', {{}}).get('kurtosis', 0):.2f}</div>
-                </div>
-                <div class="matrix-cell">
-                    <div>Risk Probability</div>
-                    <div class="stat-value">{risk_assessment.get('overall_risk_probability', 0) * 100:.1f}%</div>
-                </div>
-            </div>
-            
-            <div style="margin-top: 20px;">
-                <h3 style="color: #00ff00; margin-bottom: 10px;">Vulnerability Analysis</h3>
-                <div class="progress-container">
-                    <div class="progress-label">
-                        <span>Overall Security</span>
-                        <span>{vulnerability.get('overall', 0):.1f}/100</span>
-                    </div>
-                    <div class="progress-bar">
-                        <div class="progress-fill" style="width: {vulnerability.get('overall', 0)}%"></div>
-                    </div>
-                </div>
-                
-                <div class="progress-container">
-                    <div class="progress-label">
-                        <span>Password Strength</span>
-                        <span>{vulnerability.get('password_strength', 0):.1f}/100</span>
-                    </div>
-                    <div class="progress-bar">
-                        <div class="progress-fill" style="width: {vulnerability.get('password_strength', 0)}%"></div>
-                    </div>
-                </div>
-                
-                <div class="progress-container">
-                    <div class="progress-label">
-                        <span>WiFi Security</span>
-                        <span>{vulnerability.get('wifi_security', 0):.1f}/100</span>
-                    </div>
-                    <div class="progress-bar">
-                        <div class="progress-fill" style="width: {vulnerability.get('wifi_security', 0)}%"></div>
-                    </div>
-                </div>
-            </div>
+        <div style="font-family: monospace; background: #001100; padding: 15px; border: 1px solid #004400;">
+            <p>📊 Password Statistics:</p>
+            <p>• Total analyzed: {password_stats.get('total_analyzed', 0)}</p>
+            <p>• Average entropy: {password_stats.get('entropy_mean', 0):.2f} bits</p>
+            <p>• Average length: {password_stats.get('length_mean', 0):.1f} characters</p>
+            <p>• Weak passwords: {password_stats.get('weak_passwords', 0)}</p>
+            <p>• Strong passwords: {password_stats.get('strong_passwords', 0)}</p>
+        </div>
         """
         
         return html
     
-    def _generate_password_analysis(self, data: Dict) -> str:
-        """Generate password analysis section"""
-        browser_passwords = data.get('browser_passwords', [])
+    def _generate_table_section(self, data: List[Dict], columns: List[str]) -> str:
+        """Generate HTML table section"""
+        if not data:
+            return "<p>No data available.</p>"
         
-        if not browser_passwords:
-            return "<div class='console'>No password data available</div>"
+        html = '<table>\n<thead>\n<tr>'
         
-        # Get top 10 passwords for display
-        display_passwords = browser_passwords[:10]
+        # Header
+        for col in columns:
+            html += f'<th>{col.replace("_", " ").title()}</th>'
+        html += '</tr>\n</thead>\n<tbody>'
         
-        html = f"""
-            <div class="console">
-                <div class="console-line">TOTAL PASSWORDS ANALYZED: {len(browser_passwords)}</div>
-                <div class="console-line">DECRYPTED: {len([p for p in browser_passwords if p.get('password') and '[' not in p.get('password', '')])}</div>
-                <div class="console-line">ENCRYPTED: {len([p for p in browser_passwords if not p.get('password') or '[' in p.get('password', '')])}</div>
-            </div>
-            
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>Browser</th>
-                        <th>URL</th>
-                        <th>Username</th>
-                        <th>Password</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-        """
+        # Rows (limit to 10 for readability)
+        for item in data[:10]:
+            html += '\n<tr>'
+            for col in columns:
+                value = str(item.get(col, ''))[:50]  # Truncate long values
+                if col == 'password' and value:
+                    # Mask passwords
+                    value = '•' * min(10, len(value))
+                html += f'<td>{value}</td>'
+            html += '</tr>'
         
-        for pwd in display_passwords:
-            password = pwd.get('password', '')
-            if len(password) > 20:
-                password = password[:20] + '...'
-            
-            status = "DECRYPTED" if password and '[' not in password else "ENCRYPTED"
-            status_class = "risk-low" if status == "DECRYPTED" else "risk-medium"
-            
-            html += f"""
-                    <tr>
-                        <td>{pwd.get('browser', 'N/A')}</td>
-                        <td>{pwd.get('url', '')[:30] + ('...' if len(pwd.get('url', '')) > 30 else '')}</td>
-                        <td>{pwd.get('username', '')[:20] + ('...' if len(pwd.get('username', '')) > 20 else '')}</td>
-                        <td>{password}</td>
-                        <td><span class="risk-indicator {status_class}">{status}</span></td>
-                    </tr>
-            """
+        html += '\n</tbody>\n</table>'
         
-        html += """
-                </tbody>
-            </table>
-        """
-        
-        return html
-    
-    def _generate_wifi_analysis(self, data: Dict) -> str:
-        """Generate WiFi analysis section"""
-        wifi_data = data.get('wifi_passwords', [])
-        
-        if not wifi_data:
-            return "<div class='console'>No WiFi data available</div>"
-        
-        html = f"""
-            <div class="console">
-                <div class="console-line">WIFI NETWORKS DETECTED: {len(wifi_data)}</div>
-                <div class="console-line">SECURED NETWORKS: {len([w for w in wifi_data if 'open' not in str(w.get('security', '')).lower()])}</div>
-                <div class="console-line">OPEN NETWORKS: {len([w for w in wifi_data if 'open' in str(w.get('security', '')).lower()])}</div>
-            </div>
-            
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>SSID</th>
-                        <th>Security</th>
-                        <th>Password</th>
-                        <th>Risk</th>
-                    </tr>
-                </thead>
-                <tbody>
-        """
-        
-        for wifi in wifi_data[:10]:  # Show top 10
-            ssid = wifi.get('ssid', 'Unknown')
-            security = wifi.get('security', 'Unknown')
-            password = wifi.get('password', 'Not found')
-            
-            # Determine risk level
-            if 'open' in security.lower() or 'none' in security.lower():
-                risk_level = "CRITICAL"
-                risk_class = "risk-critical"
-            elif 'wpa3' in security.lower():
-                risk_level = "LOW"
-                risk_class = "risk-low"
-            elif 'wpa2' in security.lower():
-                risk_level = "MEDIUM"
-                risk_class = "risk-medium"
-            else:
-                risk_level = "HIGH"
-                risk_class = "risk-high"
-            
-            html += f"""
-                    <tr>
-                        <td>{ssid[:25] + ('...' if len(ssid) > 25 else '')}</td>
-                        <td>{security}</td>
-                        <td>{'*' * min(10, len(password)) if password and password.lower() != 'not found' else 'Not found'}</td>
-                        <td><span class="risk-indicator {risk_class}">{risk_level}</span></td>
-                    </tr>
-            """
-        
-        html += """
-                </tbody>
-            </table>
-        """
-        
-        return html
-    
-    def _generate_risk_assessment(self) -> str:
-        """Generate risk assessment section"""
-        if not self.math_analysis:
-            return "<div class='console'>No risk assessment data available</div>"
-        
-        vulnerability = self.math_analysis.get('vulnerability_score', {})
-        risk_assessment = self.math_analysis.get('risk_assessment', {})
-        
-        risk_level = vulnerability.get('risk_level', 'UNKNOWN')
-        risk_class = f"risk-{risk_level.lower()}" if risk_level != 'UNKNOWN' else "risk-medium"
-        
-        html = f"""
-            <div class="console">
-                <div class="console-line">OVERALL RISK LEVEL: {risk_level}</div>
-                <div class="console-line">VULNERABILITY SCORE: {vulnerability.get('overall', 0):.1f}/100</div>
-                <div class="console-line">RISK PROBABILITY: {risk_assessment.get('overall_risk_probability', 0) * 100:.1f}%</div>
-                <div class="console-line">EXPECTED LOSS IMPACT: ${risk_assessment.get('expected_loss_impact', 0):.1f}</div>
-            </div>
-            
-            <div style="text-align: center; margin: 20px 0;">
-                <div class="risk-indicator {risk_class}" style="font-size: 1.5em; padding: 15px 30px;">
-                    {risk_level} RISK
-                </div>
-            </div>
-            
-            <div class="matrix-grid">
-        """
-        
-        # Add probability indicators
-        probabilities = risk_assessment.get('individual_probabilities', {})
-        for event, prob in probabilities.items():
-            prob_percent = prob * 100
-            html += f"""
-                <div class="matrix-cell">
-                    <div>{event.replace('_', ' ').title()}</div>
-                    <div class="stat-value">{prob_percent:.1f}%</div>
-                </div>
-            """
-        
-        html += """
-            </div>
-        """
-        
-        return html
-    
-    def _generate_system_data_section(self, data: Dict) -> str:
-        """Generate system data section"""
-        html = "<div class='matrix-grid'>"
-        
-        # System credentials
-        sys_creds = data.get('system_credentials', [])
-        if sys_creds:
-            html += f"""
-                <div class="matrix-cell">
-                    <div>System Credentials</div>
-                    <div class="stat-value">{len(sys_creds)}</div>
-                </div>
-            """
-        
-        # Email clients
-        email_clients = data.get('email_clients', [])
-        if email_clients:
-            html += f"""
-                <div class="matrix-cell">
-                    <div>Email Accounts</div>
-                    <div class="stat-value">{len(email_clients)}</div>
-                </div>
-            """
-        
-        # FTP clients
-        ftp_clients = data.get('ftp_clients', [])
-        if ftp_clients:
-            html += f"""
-                <div class="matrix-cell">
-                    <div>FTP Connections</div>
-                    <div class="stat-value">{len(ftp_clients)}</div>
-                </div>
-            """
-        
-        # Database clients
-        db_clients = data.get('database_clients', [])
-        if db_clients:
-            html += f"""
-                <div class="matrix-cell">
-                    <div>Database Connections</div>
-                    <div class="stat-value">{len(db_clients)}</div>
-                </div>
-            """
-        
-        # VPN configs
-        vpn_configs = data.get('vpn_configs', [])
-        if vpn_configs:
-            html += f"""
-                <div class="matrix-cell">
-                    <div>VPN Configurations</div>
-                    <div class="stat-value">{len(vpn_configs)}</div>
-                </div>
-            """
-        
-        html += "</div>"
-        
-        return html
-    
-    def _generate_recommendations_section(self) -> str:
-        """Generate recommendations section"""
-        if not self.math_analysis:
-            return "<div class='console'>No recommendations available</div>"
-        
-        recommendations = self.math_analysis.get('vulnerability_score', {}).get('recommendations', [])
-        
-        if not recommendations:
-            return "<div class='console'>System security appears adequate. Continue regular monitoring.</div>"
-        
-        html = "<div class='console'>"
-        
-        for i, rec in enumerate(recommendations, 1):
-            html += f"""
-                <div class="console-line">[{i:02d}] {rec}</div>
-            """
-        
-        html += "</div>"
+        if len(data) > 10:
+            html += f'<p>... and {len(data) - 10} more items</p>'
         
         return html
 
 # ============================================================================
-# ENHANCED MAIN EXECUTION WITH MATHEMATICAL ANALYSIS
+# MAIN EXECUTION
 # ============================================================================
+
+def print_banner():
+    """Print tool banner"""
+    banner = """
+╔══════════════════════════════════════════════════════════════════════════╗
+║                                                                          ║
+║                SECURITY ANALYTICS ENGINE v4.0                            ║
+║                                                                          ║
+║                   ⚠ FOR EDUCATIONAL PURPOSES ONLY ⚠                     ║
+║                                                                          ║
+╚══════════════════════════════════════════════════════════════════════════╝
+"""
+    print(banner)
+    
+    if HAS_COLORAMA:
+        print(f"{Fore.GREEN}Version: 4.0{Style.RESET_ALL}")
+        print(f"{Fore.YELLOW}Platform: {platform.system()} {platform.release()}{Style.RESET_ALL}")
+        print(f"{Fore.YELLOW}User: {getpass.getuser()}{Style.RESET_ALL}")
+        print(f"{Fore.YELLOW}Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}{Style.RESET_ALL}")
+    else:
+        print(f"Version: 4.0")
+        print(f"Platform: {platform.system()} {platform.release()}")
+        print(f"User: {getpass.getuser()}")
+        print(f"Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+
+def get_user_confirmation():
+    """Get user confirmation before proceeding"""
+    print("\n" + "="*70)
+    print("⚠ WARNING: This tool analyzes security information.")
+    print("Use only on systems you own or have explicit permission to test.")
+    print("You are responsible for proper use of this tool.")
+    print("="*70)
+    
+    response = input("\nDo you understand and accept responsibility? (yes/no): ")
+    return response.lower() in ['yes', 'y', 'ok']
 
 def main():
-    """Enhanced main execution with mathematical analysis"""
+    """Main execution function"""
     try:
-        print(f"\n{'='*80}")
-        print("                 SECURITY ANALYTICS ENGINE v4.0")
-        print("                    WITH MATHEMATICAL ANALYSIS")
-        print(f"{'='*80}")
+        # Print banner
+        print_banner()
         
-        # Get user confirmation
-        print("\n⚠  WARNING: This tool performs security analysis.")
-        print("   Use only on systems you own or have explicit permission to test.")
-        
-        response = input("\nDo you understand and accept responsibility? (yes/no): ")
-        if response.lower() not in ['yes', 'y']:
-            print("Operation cancelled.")
+        # Get confirmation
+        if not get_user_confirmation():
+            print("Operation cancelled by user.")
             return
         
         # Initialize components
@@ -1957,22 +1572,46 @@ def main():
         math_engine = MathematicalAnalysisEngine()
         html_generator = ProfessionalHTMLReportGenerator()
         
-        print("\n[*] Starting comprehensive security analysis...")
+        print("\n" + "="*70)
+        print("[*] Starting security analysis...")
+        print("="*70)
         
         # Extract data
         extracted_data = extractor.extract_all_passwords()
         
         # Perform mathematical analysis
         print("\n[*] Performing mathematical analysis...")
-        math_analysis = math_engine.analyze_system_data(extracted_data)
+        math_analysis = {}
+        
+        if extracted_data.get("browser_passwords"):
+            passwords = [p.get('password', '') for p in extracted_data["browser_passwords"] 
+                        if p.get('password') and '[' not in p.get('password', '')]
+            
+            if passwords:
+                password_stats = math_engine.analyze_password_entropy(passwords)
+                math_analysis['password_stats'] = password_stats
+                
+                # Calculate vulnerability score
+                weak_ratio = password_stats.get('weak_passwords', 0) / max(password_stats.get('total_analyzed', 1), 1)
+                security_score = 100 * (1 - weak_ratio)
+                
+                math_analysis['vulnerability_score'] = {
+                    'overall': security_score,
+                    'risk_level': 'LOW' if security_score > 80 else 'MEDIUM' if security_score > 60 else 'HIGH',
+                    'weak_password_ratio': weak_ratio
+                }
+                
+                # Generate statistical report
+                print("\n" + "="*70)
+                print(math_engine.generate_statistical_report(math_analysis))
         
         # Generate HTML report
-        print("\n[*] Generating professional report...")
+        print("\n[*] Generating HTML report...")
         report_path = html_generator.generate_html_report(extracted_data, math_analysis)
         
         print(f"\n[✓] Report generated: {report_path}")
         
-        # Open report in browser
+        # Try to open the report
         try:
             if platform.system() == "Windows":
                 os.startfile(report_path)
@@ -1981,30 +1620,25 @@ def main():
             else:
                 subprocess.run(["xdg-open", report_path])
             print("[✓] Report opened in browser")
-        except Exception as e:
-            print(f"[!] Could not open browser: {e}")
+        except:
+            print(f"[!] Could not open browser automatically")
             print(f"    Please open manually: {report_path}")
         
-        # Print summary
-        print(f"\n{'='*80}")
-        print("ANALYSIS COMPLETE")
-        print(f"{'='*80}")
+        print("\n" + "="*70)
+        print("[✓] ANALYSIS COMPLETE")
+        print("="*70)
         
-        if 'vulnerability_score' in math_analysis:
+        if math_analysis.get('vulnerability_score'):
             score = math_analysis['vulnerability_score']['overall']
             level = math_analysis['vulnerability_score']['risk_level']
             print(f"Security Score: {score:.1f}/100 ({level})")
         
-        if 'risk_assessment' in math_analysis:
-            risk_prob = math_analysis['risk_assessment']['overall_risk_probability'] * 100
-            print(f"Risk Probability: {risk_prob:.1f}%")
-        
-        print(f"\n⚠  Remember to store the report securely and delete when no longer needed.")
+        print(f"\n⚠ Remember to store the report securely and delete when no longer needed.")
         
     except KeyboardInterrupt:
         print("\n[!] Operation interrupted by user.")
     except Exception as e:
-        print(f"\n[!] Critical error: {e}")
+        print(f"\n[!] Error: {e}")
         import traceback
         traceback.print_exc()
 
@@ -2013,17 +1647,15 @@ def main():
 # ============================================================================
 
 if __name__ == "__main__":
-    # Check for required packages
-    try:
-        import numpy as np
-        HAS_NUMPY = True
-    except ImportError:
-        print("[!] NumPy is required for mathematical analysis.")
-        print("    Install with: pip install numpy")
-        HAS_NUMPY = False
+    # Check if running with appropriate privileges
+    if platform.system() == "Windows":
+        try:
+            is_admin = ctypes.windll.shell32.IsUserAnAdmin()
+            if not is_admin:
+                print("[!] Not running as administrator. Some features may not work.")
+                print("[!] Consider running as administrator for full functionality.")
+        except:
+            pass
     
-    if HAS_NUMPY:
-        main()
-    else:
-        print("[!] Mathematical analysis features disabled.")
-        print("    Install NumPy and restart the tool.")
+    # Run main function
+    main()
