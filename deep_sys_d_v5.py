@@ -1,15 +1,3 @@
-"""
-================================================================================
-                        ULTIMATE BROWSER PASSWORD EXTRACTOR
-================================================================================
-Description: Comprehensive tool for extracting and decrypting browser passwords
-             and system credentials with advanced visualization and reporting.
-Author: Sabari425 Security Team
-Version: 3.0
-Usage: Educational and authorized security testing only
-================================================================================
-"""
-
 import os
 import sys
 import json
