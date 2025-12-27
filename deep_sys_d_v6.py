@@ -1,15 +1,3 @@
-"""
-================================================================================
-                 ULTIMATE SECURITY ANALYTICS ENGINE v4.0
-================================================================================
-Description: Advanced security analysis tool with mathematical modeling,
-             statistical analysis, and professional visualization
-Author: Security Analytics Team
-Version: 4.0
-Usage: Educational and authorized security testing only
-================================================================================
-"""
-
 import os
 import sys
 import json
