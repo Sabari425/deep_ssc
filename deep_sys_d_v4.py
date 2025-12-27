@@ -14,7 +14,6 @@ from pathlib import Path
 import struct
 import win32api
 
-# Try to import required crypto libraries
 CRYPTO_AVAILABLE = False
 DPAPI_AVAILABLE = False
 
@@ -1052,4 +1051,5 @@ if __name__ == "__main__":
         import traceback
 
         traceback.print_exc()
+
         print("\n[!] Try running as administrator/sudo if on Windows/macOS/Linux")
