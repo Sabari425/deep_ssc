@@ -1,10 +1,3 @@
-#!/usr/bin/env python3
-"""
-HackerVision - Advanced System Security Monitoring Tool
-Author: Security Analyst
-Version: 2.0
-"""
-
 import os
 import sys
 import json
@@ -21,7 +14,6 @@ from typing import Dict, List, Any, Optional, Tuple
 import argparse
 import warnings
 
-# Suppress warnings for cleaner output
 warnings.filterwarnings('ignore')
 
 # ============================================================================
@@ -29,7 +21,7 @@ warnings.filterwarnings('ignore')
 # ============================================================================
 
 REQUIRED_PACKAGES = {
-    'psutil': 'psutil',  # System monitoring[citation:1][citation:6]
+    'psutil': 'psutil', 
     'requests': 'requests',
     'cryptography': 'cryptography',
     'jinja2': 'Jinja2',
@@ -1572,4 +1564,5 @@ if __name__ == "__main__":
         sys.exit(1)
     except Exception as e:
         print_status(f"Unexpected error: {e}", "ERROR")
+
         sys.exit(1)
