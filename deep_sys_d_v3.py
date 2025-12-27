@@ -10,7 +10,6 @@ import subprocess
 import getpass
 from pathlib import Path
 
-# Crypto modules for Chrome/Edge password decryption
 try:
     from Crypto.Cipher import AES
     from Crypto.Protocol.KDF import PBKDF2
@@ -1757,3 +1756,4 @@ if __name__ == "__main__":
 
 
         traceback.print_exc()
+
